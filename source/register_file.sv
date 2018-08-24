@@ -1,6 +1,8 @@
 `include "cpu_types_pkg.vh"
 `include "register_file_if.vh"
 
+import cpu_types_pkg::*;
+
 module register_file
 (
   input logic CLK,
@@ -8,13 +10,13 @@ module register_file
   register_file_if.rf my_rf
 );
 
-  word_t [0:31] my_reg;
+  word_t [31:0] my_reg;
 
   always_ff@(posedge CLK, negedge nRST) begin
     if(!nRST) begin
       my_reg <= '0;
     end
-    else if(WEN && my_rf.wsel != 0) begin
+    else if(my_rf.WEN && my_rf.wsel != 0) begin
       my_reg[my_rf.wsel] <= my_rf.wdat;
     end
   end
