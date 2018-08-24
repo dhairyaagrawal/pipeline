@@ -49,4 +49,37 @@ module register_file_tb;
 endmodule
 
 program test;
+  initial begin
+    // initialize test input signals
+    nRST = 1'b1;
+    rfif.tb.WEN = 1'b0;
+    rfif.tb.wdat = '0;
+    rfif.tb.wsel = '0;
+    rfif.tb.rsel1 = '0;
+    rfif.tb.rsel2 = '0;
+    @(posedge CLK);
+
+    nRST = 1'b0;
+    @(posedge CLK);
+
+    nRST = 1'b1;
+    @(posedge CLK);
+
+    // write to register 05
+    rfif.tb.wdat = '1;
+    rfif.tb.wsel = 5;
+    rfif.tb.WEN = 1'b1;
+    @(posedge CLK);
+    rfif.tb.WEN = 1'b0;
+    rfif.tb.rsel1 = 5;
+    @(posedge CLK);
+    if(rfif.tb.rdat1 == '1) begin
+      $info("write works");
+    end else begin
+      $error("write failed");
+    end
+    
+
+    
+  end
 endprogram
