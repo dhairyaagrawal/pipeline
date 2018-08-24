@@ -26,9 +26,9 @@ module register_file_tb;
   always #(PERIOD/2) CLK++;
 
   // interface
-  register_file_if rfif ();
+  register_file_if rfif (); //shouldn't this be .rf??
   // test program
-  test PROG (CLK, nRST, rfif);
+  test PROG (CLK, nRST, rfif); //edited, do i declare another reg_file_if??
   // DUT
 `ifndef MAPPED
   register_file DUT(CLK, nRST, rfif);
@@ -48,15 +48,17 @@ module register_file_tb;
 
 endmodule
 
-program test(input CLK, output nRST, register_file_if.tb tbif);
+program test(input logic CLK, output logic nRST, register_file_if.tb tbif);
   initial begin
+    $monitor("wdat = %h, rdat1 = %h, rdat2 = %h", tbif.wdat, tbif.rdat1,
+tbif.rdat2);
     // initialize test input signals
     nRST = 1'b1;
-    rfif.tb.WEN = 1'b0;
-    rfif.tb.wdat = '0;
-    rfif.tb.wsel = '0;
-    rfif.tb.rsel1 = '0;
-    rfif.tb.rsel2 = '0;
+    tbif.WEN = 1'b0;
+    tbif.wdat = '0;
+    tbif.wsel = '0;
+    tbif.rsel1 = '0;
+    tbif.rsel2 = '0;
     @(posedge CLK);
 
     nRST = 1'b0;
@@ -66,54 +68,54 @@ program test(input CLK, output nRST, register_file_if.tb tbif);
     @(posedge CLK);
 
     // write to register 05
-    rfif.tb.wdat = '1;
-    rfif.tb.wsel = 5;
-    rfif.tb.WEN = 1'b1;
+    tbif.wdat = '1;
+    tbif.wsel = 5;
+    tbif.WEN = 1'b1;
     @(posedge CLK);
-    rfif.tb.WEN = 1'b0;
-    rfif.tb.rsel1 = 5;
+    tbif.WEN = 1'b0;
+    tbif.rsel1 = 5;
     @(posedge CLK);
-    if(rfif.tb.rdat1 == '1) begin
+    if(tbif.rdat1 == '1) begin
       $info("write on 05 works");
     end else begin
       $error("write on 05 failed");
     end
 
     // write to register 29
-    rfif.tb.wdat = 32'hAABBCCDD;
-    rfif.tb.wsel = 29;
-    rfif.tb.WEN = 1'b1;
+    tbif.wdat = 32'hAABBCCDD;
+    tbif.wsel = 29;
+    tbif.WEN = 1'b1;
     @(posedge CLK);
-    rfif.tb.WEN = 1'b0;
-    rfif.tb.rsel2 = 29;
+    tbif.WEN = 1'b0;
+    tbif.rsel2 = 29;
     @(posedge CLK);
-    if(rfif.tb.rdat2 == 32'hAABBCCDD) begin
+    if(tbif.rdat2 == 32'hAABBCCDD) begin
       $info("write on 29 works");
     end else begin
       $error("write on 29 failed");
     end
 
     // write to register 00
-    rfif.tb.wdat = '1;
-    rfif.tb.wsel = 0;
-    rfif.tb.WEN = 1'b1;
+    tbif.wdat = '1;
+    tbif.wsel = 0;
+    tbif.WEN = 1'b1;
     @(posedge CLK);
-    rfif.tb.WEN = 1'b0;
-    rfif.tb.rsel1 = 0;
+    tbif.WEN = 1'b0;
+    tbif.rsel1 = 0;
     @(posedge CLK);
-    if(rfif.tb.rdat1 == '0) begin
+    if(tbif.rdat1 == '0) begin
       $info("write on 00 works so all 0s");
     end else begin
       $error("write on 00 failed so written over");
     end
 
     //async reset
-    rfif.tb.nRST = 1'b0;
+    nRST = 1'b0;
     @(negedge CLK);
-    rfif.tb.rsel2 = 29;
+    tbif.rsel2 = 29;
     @(posedge CLK);
-    rfif.tb.nRST = 1'b1;
-    if(rfif.tb.rdat1 == '0) begin
+    nRST = 1'b1;
+    if(tbif.rdat1 == '0) begin
       $info("write on 00 works so all 0s");
     end else begin
       $error("write on 00 failed so written over");
