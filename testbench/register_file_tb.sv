@@ -34,15 +34,17 @@ module register_file_tb;
   register_file DUT(CLK, nRST, rfif);
 `else
   register_file DUT(
+    .\CLK (CLK),
+    .\nRST (nRST),
     .\rfif.rdat2 (rfif.rdat2),
     .\rfif.rdat1 (rfif.rdat1),
     .\rfif.wdat (rfif.wdat),
     .\rfif.rsel2 (rfif.rsel2),
     .\rfif.rsel1 (rfif.rsel1),
     .\rfif.wsel (rfif.wsel),
-    .\rfif.WEN (rfif.WEN),
-    .\nRST (nRST),
-    .\CLK (CLK)
+    .\rfif.WEN (rfif.WEN)
+    //.\nRST (nRST),
+    //.\CLK (CLK)
   );
 `endif
 
@@ -76,9 +78,9 @@ tbif.rdat2);
     tbif.rsel1 = 5;
     @(posedge CLK);
     if(tbif.rdat1 == '1) begin
-      $info("write on 05 works");
+      $display("write on 05 works");
     end else begin
-      $error("write on 05 failed");
+      $display("write on 05 failed");
     end
 
     // write to register 29
@@ -90,9 +92,9 @@ tbif.rdat2);
     tbif.rsel2 = 29;
     @(posedge CLK);
     if(tbif.rdat2 == 32'hAABBCCDD) begin
-      $info("write on 29 works");
+      $display("write on 29 works");
     end else begin
-      $error("write on 29 failed");
+      $display("write on 29 failed");
     end
 
     // write to register 00
@@ -104,9 +106,9 @@ tbif.rdat2);
     tbif.rsel1 = 0;
     @(posedge CLK);
     if(tbif.rdat1 == '0) begin
-      $info("write on 00 works so all 0s");
+      $display("write on 00 works so all 0s");
     end else begin
-      $error("write on 00 failed so written over");
+      $display("write on 00 failed so written over");
     end
 
     //async reset
@@ -116,9 +118,9 @@ tbif.rdat2);
     @(posedge CLK);
     nRST = 1'b1;
     if(tbif.rdat1 == '0) begin
-      $info("write on 00 works so all 0s");
+      $display("nRST on 29 works so all 0s");
     end else begin
-      $error("write on 00 failed so written over");
+      $display("nRST on 29 failed");
     end
 
 
