@@ -1,7 +1,4 @@
 /*
-  Eric Villasenor
-  evillase@gmail.com
-
   alu interface
 */
 `ifndef ALU_IF_VH

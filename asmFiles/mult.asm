@@ -1,13 +1,12 @@
   org 0x0000
-  and   $29, $29, $0
-  ori   $29, $29, 0xfffc    //set stack pointer
+  ori   $29, $0, 0xfffc    //set stack pointer
 
   and   $6, $6, $0
-  ori   $6, $6, 0x0011
+  ori   $6, $6, 4
   push  $6                //push first operand
 
   and   $6, $6, $0
-  ori   $6, $6, 0x00fa
+  ori   $6, $6, 8
   push  $6                //push second operand
 
 mult:

@@ -4,19 +4,15 @@
   ori   $29, $29, 0xfffc    //set stack pointer
 
   and   $6, $6, $0
-  ori   $6, $6, 0x0011
+  ori   $6, $6, 2
   push  $6                //push first operand
 
   and   $6, $6, $0
-  ori   $6, $6, 0x00fa
+  ori   $6, $6, 8
   push  $6                //push second operand
 
   and   $6, $6, $0
-  ori   $6, $6, 0x0f11
-  push  $6
-
-  and   $6, $6, $0
-  ori   $6, $6, 0x000f
+  ori   $6, $6, 5
   push  $6
 
   and   $28, $28, $0

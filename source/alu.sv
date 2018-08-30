@@ -13,7 +13,7 @@ module alu
 
   assign aluif.zero = (aluif.outputport == '0) ? 1'b1 : 1'b0;
   assign aluif.negative = out[31];
-  assign aluig.overflow = over;
+  assign aluif.overflow = over;
   assign aluif.outputport = out;
   always_comb begin
     over = 1'b0;
@@ -40,28 +40,29 @@ module alu
                 else if(aluif.portA[31] == 1'b0 & aluif.portB[31] == 1'b1 & out[31] == 1'b1) begin
                    over =1'b1;
                 end
+      end
       ALU_AND:  begin
                   out = aluif.portA & aluif.portB;
-                end
+      end
       ALU_OR:   begin
                   out = aluif.portA | aluif.portB;
-                end
+      end
       ALU_XOR:  begin
                   out = aluif.portA ^ aluif.portB;
-                end
+      end
       ALU_NOR:  begin
                   out = ~(aluif.portA | aluif.portB);
-                end
+      end
       ALU_SLT:  begin
                   if($signed(aluif.portA) < $signed(aluif.portB)) begin
                     out = 1;
                   end
-                end
+      end
       ALU_SLTU: begin
                   if(aluif.portA < aluif.portB) begin
                     out = 1;
                   end
-                end
+      end
     endcase
   end
 endmodule
