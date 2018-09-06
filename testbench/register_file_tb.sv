@@ -43,8 +43,6 @@ module register_file_tb;
     .\rfif.rsel1 (rfif.rsel1),
     .\rfif.wsel (rfif.wsel),
     .\rfif.WEN (rfif.WEN)
-    //.\nRST (nRST),
-    //.\CLK (CLK)
   );
 `endif
 

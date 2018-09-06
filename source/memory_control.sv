@@ -20,36 +20,24 @@ module memory_control (
   import cpu_types_pkg::*;
 
   // number of cpus for cc
-  parameter CPUS = 2;
+  parameter CPUS = 1; //set in tb when instantiating this module
+
+  assign ccif.iload = ccif.ramload; //right??
+  assign ccif.dload = ccif.ramload; //right??
+
+  assign ccif.ramstore = ccif.dstore;
+  assign ccif.ramaddr = (ccif.dREN | ccif.dWEN) ? ccif.daddr : ccif.iaddr;
+  assign ccif.ramWEN = ccif.dWEN;
+  assign ccif.ramREN = ((ccif.iREN | ccif.dREN) && ~ccif.dWEN) ? 1'b1 : 1'b0;
   
-  always_ff@(posedge CLK, negedge nRST) begin
-    if(!nRST) begin
-      ccif.iload <= '0;
-      ccif.dload <= '0;
-    end else if(ccif.dREN & ccif.ramstate == ACCESS) begin
-      ccif.dload <= ccif.ramload;
+  always_comb begin
+    ccif.dwait = 1'b1;
+    ccif.iwait = 1'b1;
+    if((ccif.dREN | ccif.dWEN) && ccif.ramstate == ACCESS) begin
       ccif.dwait = 1'b0;
-      ccif.ramREN = 1'b0;
-    end else if(ccif.iREN & ccif.ramstate == ACCESS) begin
-      ccif.iload <= ccif.ramload;
+    end else if(ccif.iREN && ccif.ramstate == ACCESS) begin
       ccif.iwait = 1'b0;
-      ccif.ramREN = 1'b0;
     end
   end
 
-  always_comb begin
-    ccif.ramWEN = 1'b0;
-    ccif.ramREN = 1'b0;
-    ccif.ramaddr = '0;
-    ccif.ramstore = '0;
-    if(ccif.dREN) begin
-      ccif.ramaddr = ccif.daddr;
-      ccif.ramREN = 1'b1;
-
-      ccif.iwait = 1'b1;
-      ccif.dwait = 1'b1;
-    end else if(ccif.iREN) begin
-      ccif.ramaddr = ccif.iaddr;
-      ccif.ramREN = 1'b1;
-    end  
 endmodule
