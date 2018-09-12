@@ -22,4 +22,11 @@ module datapath (
   // pc init
   parameter PC_INIT = 0;
 
+  //interfaces
+  instruction_fetch_unit_if ifuif();
+  request_unit_if ruif();
+  control_unit_if cuif();
+  alu_if aluif();
+  register_file_if rfif();
+
 endmodule

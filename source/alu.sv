@@ -19,8 +19,8 @@ module alu
     over = 1'b0;
     out = '0;
     casez(aluif.ALUOP)
-      ALU_SLL:  out = aluif.portA<<aluif.portB;
-      ALU_SRL:  out = aluif.portA>>aluif.portB;
+      ALU_SLL:  out = aluif.portB<<aluif.portA;//changed this
+      ALU_SRL:  out = aluif.portB>>aluif.portA;//changed this
 
       ALU_ADD:  begin
                 out = aluif.portA + aluif.portB;
