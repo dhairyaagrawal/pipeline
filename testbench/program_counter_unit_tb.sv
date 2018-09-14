@@ -1,0 +1,106 @@
+/*
+  PC test bench
+*/
+
+// mapped needs this
+`include "program_counter_unit_if.vh"
+
+// mapped timing needs this. 1ns is too fast
+`timescale 1 ns / 1 ns
+
+module program_counter_unit_tb;
+
+  parameter PERIOD = 10;
+
+  logic CLK = 0, nRST;
+
+  // clock
+  always #(PERIOD/2) CLK++;
+
+  // interface
+  program_counter_unit_if pcuif ();
+  // test program
+  test PROG (CLK, nRST, pcuif);
+  // DUT
+`ifndef MAPPED
+  program_counter_unit DUT(CLK, nRST, pcuif);
+`else
+  program_counter_unit DUT(
+    .\CLK (CLK),
+    .\nRST (nRST),
+    .\pcuif.reg31 (pcuif.reg31),
+    .\pcuif.jaddr (pcuif.jaddr),
+    .\pcuif.imm16 (pcuif.imm16),
+    .\pcuif.PCSrc (pcuif.PCSrc),
+    .\pcuif.ihit (pcuif.ihit),
+    .\pcuif.imemaddr (pcuif.imemaddr)
+  );
+`endif
+
+endmodule
+
+program test(input logic CLK, output logic nRST, program_counter_unit_if.tb pcuif);
+  initial begin
+    // initialize test input signals
+    nRST = 1'b1;
+    pcuif.reg31 = '0;
+    pcuif.jaddr = '0;
+    pcuif.imm16 = '0;
+    pcuif.PCSrc = 0;
+    pcuif.ihit = 1'b0;
+    @(posedge CLK);
+
+    nRST = 1'b0;
+    @(posedge CLK);
+
+    nRST = 1'b1;
+    @(posedge CLK);
+
+    //PCSrc 0
+    pcuif.PCSrc = 0;
+    pcuif.ihit = 1;
+    @(posedge CLK);
+    #2;
+    assert(pcuif.imemaddr == 32'h00000004)
+    else $display("source 0 error1");
+
+    pcuif.PCSrc = 0;
+    pcuif.ihit = 0;
+    @(posedge CLK);
+    #2;
+    assert(pcuif.imemaddr == 32'h00000004)
+    else $display("source 0 error2");
+
+    pcuif.PCSrc = 0;
+    pcuif.ihit = 1;
+    @(posedge CLK);
+    #2;
+    assert(pcuif.imemaddr == 32'h00000008)
+    else $display("source 0 error3");
+
+    //PCSrc 1
+    pcuif.PCSrc = 1;
+    pcuif.imm16 = 16'hC000;
+    @(posedge CLK);
+    #2;
+    assert(pcuif.imemaddr == 32'hffff000c)
+    else $display("source 1 error");
+
+    //PCSrc 2
+    pcuif.PCSrc = 2;
+    pcuif.jaddr = '0;
+    @(posedge CLK);
+    #2;
+    assert(pcuif.imemaddr == 32'hf0000000)
+    else $display("source 2 error");
+
+    //PCSrc 3
+    pcuif.PCSrc = 3;
+    pcuif.reg31 = 32'hbaadbeef;
+    @(posedge CLK);
+    #2;
+    assert(pcuif.imemaddr == 32'hbaadbeef)
+    else $display("source 3 error");
+
+  end
+endprogram

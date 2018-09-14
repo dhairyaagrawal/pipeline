@@ -63,6 +63,7 @@ module datapath (
   assign rfif.rsel1 = dpif.imemload[25:21];
   assign rfif.rsel2 = dpif.imemload[20:16];
   always_comb begin
+    rfif.wsel = '0;
     if(cuif.RegDest == 0) begin
       rfif.wsel = dpif.imemload[15:11];
     end else if(cuif.RegDest == 1) begin
@@ -70,7 +71,7 @@ module datapath (
     end else if(cuif.RegDest == 2) begin
       rfif.wsel = 5'b11111;
     end
-
+    rfif.wdat = '0;
     if(cuif.MemtoReg == 0) begin
       rfif.wdat = aluif.outputport;
     end else if(cuif.MemtoReg == 1) begin
@@ -99,20 +100,34 @@ module datapath (
   end
 
   //control unit signals
-  assign dpif.halt = cuif.halt;
+  always_ff@(posedge CLK, negedge nRST) begin
+    if(!nRST) begin
+      dpif.halt <= 1'b0;
+    end else begin
+      dpif.halt <= cuif.halt;
+    end
+  end
   assign cuif.opcode = opcode_t'(dpif.imemload[31:26]);
   assign cuif.funct = funct_t'(dpif.imemload[5:0]);
   assign cuif.zero = aluif.zero;
   assign cuif.overflow = aluif.overflow;
   assign cuif.negative = aluif.negative;
+  assign dpif.imemREN = cuif.imemREN;
 
   //request unit signals
   assign ruif.ihit = dpif.ihit;
   assign ruif.dhit = dpif.dhit;
-  assign dpif.imemREN = ruif.imemREN;
+  //assign dpif.imemREN = ruif.imemREN;
   assign dpif.dmemREN = ruif.dmemREN;
   assign dpif.dmemWEN = ruif.dmemWEN;
-  assign ruif.imemreq = cuif.imemreq;
+  //assign ruif.imemreq = cuif.imemreq;
   assign ruif.dmemreq = cuif.dmemreq;
   assign ruif.dmemwreq = cuif.dmemwreq;
+  //always_comb begin
+  //  if(cuif.halt == 1'b1) begin
+  //    dpif.imemREN = 1'b0;
+  //  end else begin
+  //    dpif.imemREN = cuif.imemREN;
+  //  end
+  //end
 endmodule

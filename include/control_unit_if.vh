@@ -8,8 +8,8 @@ interface control_unit_if;
   // import types
   import cpu_types_pkg::*;
 
-  logic      RegWEN, ALUSrc, ExtOp, zero, overflow, negative, dmemreq, imemreq, dmemwreq, halt;
-  logic [2:0] PCSrc;
+  logic      RegWEN, ALUSrc, ExtOp, zero, overflow, negative, dmemreq, imemREN, dmemwreq, halt; //imemreq to imemREN chnaged
+  logic [1:0] PCSrc;
   logic [1:0] RegDest, MemtoReg;
   opcode_t  opcode;
   funct_t   funct;
@@ -17,12 +17,12 @@ interface control_unit_if;
 
   // control unit ports
   modport cu (
-    output   dmemreq, imemreq, dmemwreq, PCSrc, RegWEN, RegDest, ExtOp, ALUSrc, ALUOP, MemtoReg, halt,
+    output   dmemreq, imemREN, dmemwreq, PCSrc, RegWEN, RegDest, ExtOp, ALUSrc, ALUOP, MemtoReg, halt,
     input    zero, overflow, negative, opcode, funct
   );
   // control unit tb
   modport tb (
-    input   dmemreq, imemreq, dmemwreq, PCSrc, RegWEN, RegDest, ExtOp, ALUSrc, ALUOP, MemtoReg, halt,
+    input   dmemreq, imemREN, dmemwreq, PCSrc, RegWEN, RegDest, ExtOp, ALUSrc, ALUOP, MemtoReg, halt,
     output  zero, overflow, negative, opcode, funct
   );
 endinterface

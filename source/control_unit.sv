@@ -6,16 +6,17 @@ import cpu_types_pkg::*;
 module control_unit (
   control_unit_if.cu cuif
 );
+  //assign cuif.imemREN = (cuif.opcode == HALT) ? 1'b0 : 1'b1;
 
-  always_comb begin
+  always_comb begin //tried sensitivity list
     //set PCSrc
-    cuif.PCSrc = 0;
+    cuif.PCSrc = 2'b00;
     if(cuif.opcode == RTYPE && cuif.funct == JR) begin
-      cuif.PCSrc = 3;
+      cuif.PCSrc = 2'b11;
     end else if(cuif.opcode == J | cuif.opcode == JAL) begin
-      cuif.PCSrc = 2;
-    end else if((cuif.opcode == BEQ && cuif.zero == 0) | (cuif.opcode == BNE && cuif.zero != 0)) begin
-      cuif.PCSrc = 1;
+      cuif.PCSrc = 2'b10;
+    end else if((cuif.opcode == BEQ && cuif.zero == 1) | (cuif.opcode == BNE && cuif.zero == 0)) begin
+      cuif.PCSrc = 2'b01;
     end
 
     //set RegDest
@@ -55,15 +56,16 @@ module control_unit (
     end
 
     //set halt
+    cuif.halt = 0;
     if(cuif.opcode == HALT) begin
       cuif.halt = 1;
     end
 
     //set imemreq
-    cuif.imemreq = 1;
-    if(cuif.opcode == HALT) begin
-      cuif.imemreq = 0;
-    end
+    cuif.imemREN = 1;
+    //if(cuif.opcode == HALT) begin
+    //  cuif.imemREN = 0;
+    //end
 
     //set dmemreq
     cuif.dmemreq = 0;

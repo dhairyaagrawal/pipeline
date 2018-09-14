@@ -26,8 +26,8 @@ module program_counter_unit (
   end
 
   assign npc = PC + 4;
-  always_comb begin
-    unique casez (pcuif.PCSrc)
+  always_comb begin  //tried sensitivity list
+    casez (pcuif.PCSrc) //usign unique creates warning that no condition is true, is that a problem?
       0 : nextPC = npc;
       1 : nextPC = npc + ({{16{pcuif.imm16[15]}}, pcuif.imm16} << 2);
       2 : nextPC = {npc[31:28], pcuif.jaddr, 2'b00};
