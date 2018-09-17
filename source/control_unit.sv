@@ -31,6 +31,8 @@ module control_unit (
     cuif.RegWEN = 1; //in load since its two cycles garbage values gets writtem first and then actual value overwrites it in the next cycle????
     if((cuif.opcode == RTYPE && cuif.funct == JR) | (cuif.opcode == BEQ) | (cuif.opcode == BNE) | (cuif.opcode == SW) | (cuif.opcode == J) | (cuif.opcode == HALT)) begin
       cuif.RegWEN = 0;
+    end else if((cuif.opcode == LW && cuif.dhit == 1'b0) | (cuif.opcode == SW && cuif.dhit == 1'b0)) begin
+      cuif.RegWEN = 0;
     end
 
     //set ALUSrc

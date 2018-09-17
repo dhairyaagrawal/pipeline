@@ -113,6 +113,7 @@ module datapath (
   assign cuif.overflow = aluif.overflow;
   assign cuif.negative = aluif.negative;
   assign dpif.imemREN = cuif.imemREN;
+  assign cuif.dhit = dpif.dhit;
 
   //request unit signals
   assign ruif.ihit = dpif.ihit;
