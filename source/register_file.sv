@@ -12,7 +12,7 @@ module register_file
 
   word_t [31:0] my_reg;
 
-  always_ff@(posedge CLK, negedge nRST) begin
+  always_ff@(negedge CLK, negedge nRST) begin
     if(!nRST) begin
       my_reg <= '0;
     end

@@ -16,8 +16,11 @@
 module caches (
   input logic CLK, nRST,
   datapath_cache_if.cache dcif,
-  caches_if cif
+  caches_if.caches cif
 );
+
+  import cpu_types_pkg::*;
+  parameter CPUID = 0;
 
   word_t instr;
   word_t daddr;

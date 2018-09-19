@@ -9,22 +9,36 @@ module memwb (
   memwb_if.mw memwbif
 );
 
-  always_ff@(posedge CLK, negedge nrst) begin
-    if(nrst == 0) begin
-      memwb.dmemload_out = '0;
-      memwb.aluout_out = '0;
-      memwb.imm_out = '0;
-      memwb.npc_out = '0;
-      memwb.dest_out = '0;
-      memwb.WBctrl_out = '0;
-    end else if(idexif.ihit == 1) begin
-      memwb.dmemload_out = memwb.dmemload_in;
-      memwb.aluout_out = memwb.aluout_in;
-      memwb.imm_out = memwb.imm_in;
-      memwb.npc_out = memwb.npc_in;
-      memwb.dest_out = memwb.dest_in;
-      memwb.WBctrl_out = memwb.WBctrl_in;
-    //add dhit logic below here
+  always_ff@(posedge CLK, negedge nRST) begin
+    if(nRST == 0) begin
+      memwbif.dmemload_out <= '0;
+      memwbif.aluout_out <= '0;
+      memwbif.imm_out <= '0;
+      memwbif.npc_out <= '0;
+      memwbif.dest_out <= '0;
+      memwbif.WBctrl_out <= '0;
+    end else if(memwbif.dmemREN || memwbif.dmemWEN) begin
+      if(memwbif.dhit == 1) begin
+        memwbif.dmemload_out <= memwbif.dmemload_in;
+        memwbif.aluout_out <= memwbif.aluout_in;
+        memwbif.imm_out <= memwbif.imm_in;
+        memwbif.npc_out <= memwbif.npc_in;
+        memwbif.dest_out <= memwbif.dest_in;
+        memwbif.WBctrl_out <= memwbif.WBctrl_in;
+      end
     end
+    else if(memwbif.ihit == 1) begin
+      //memwbif.dmemload_out <= memwbif.dmemload_in;
+      memwbif.aluout_out <= memwbif.aluout_in;
+      memwbif.imm_out <= memwbif.imm_in;
+      memwbif.npc_out <= memwbif.npc_in;
+      memwbif.dest_out <= memwbif.dest_in;
+      memwbif.WBctrl_out <= memwbif.WBctrl_in;
+    end
+  end
+
+  always_comb begin
+
+  end
 
 endmodule

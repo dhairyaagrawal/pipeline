@@ -19,18 +19,19 @@ interface exmem_if;
   logic [3:0] WBctrl_in, WBctrl_out;
   logic [4:0] MEMctrl_in, MEMctrl_out;
   logic ihit;
+  logic dhit;
 
   // exmem ports
-  modport rf (
+  modport em (
     input   store_in, aluout_in, baddr_in, jaddr_in, reg31_in, npc_in, dest_in,
-      imm_in, zero_in, WBctrl_in, MEMctrl_in, ihit,
+      imm_in, zero_in, WBctrl_in, MEMctrl_in, ihit, dhit,
     output  store_out, aluout_out, baddr_out, jaddr_out, reg31_out, npc_out,
       dest_out, imm_out, zero_out, WBctrl_out, MEMctrl_out
   );
   // exmem tb
   modport tb (
     output   store_in, aluout_in, baddr_in, jaddr_in, reg31_in, npc_in, dest_in,
-      imm_in, zero_in, WBctrl_in, MEMctrl_in, ihit,
+      imm_in, zero_in, WBctrl_in, MEMctrl_in, ihit, dhit,
     input  store_out, aluout_out, baddr_out, jaddr_out, reg31_out, npc_out,
       dest_out, imm_out, zero_out, WBctrl_out, MEMctrl_out
   );

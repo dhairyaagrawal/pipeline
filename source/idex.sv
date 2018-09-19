@@ -6,11 +6,11 @@ import cpu_types_pkg::*;
 module idex (
   input logic CLK,
   input logic nRST,
-  idex_if.ru idexif
+  idex_if.ie idexif
 );
 
-  always_ff@(posedge CLK, negedge nrst) begin
-    if(nrst == 0) begin
+  always_ff@(posedge CLK, negedge nRST) begin
+    if(nRST == 0) begin
       idexif.rdat1_out <= '0;
       idexif.rdat2_out <= '0;
       idexif.addr_out <= '0;
@@ -27,5 +27,6 @@ module idex (
       idexif.MEMctrl_out <= idexif.MEMctrl_in;
       idexif.EXctrl_out <= idexif.EXctrl_in;
     end
+  end
 
 endmodule

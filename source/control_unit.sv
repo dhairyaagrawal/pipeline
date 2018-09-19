@@ -6,17 +6,22 @@ import cpu_types_pkg::*;
 module control_unit (
   control_unit_if.cu cuif
 );
-  //assign cuif.imemREN = (cuif.opcode == HALT) ? 1'b0 : 1'b1;
 
   always_comb begin //tried sensitivity list
-    //set PCSrc
-    cuif.PCSrc = 2'b00;
+    //set tmpPC
+    cuif.tmpPC = 2'b00;
     if(cuif.opcode == RTYPE && cuif.funct == JR) begin
-      cuif.PCSrc = 2'b11;
+      cuif.tmpPC = 2'b11;
     end else if(cuif.opcode == J | cuif.opcode == JAL) begin
-      cuif.PCSrc = 2'b10;
+      cuif.tmpPC = 2'b10;
     end else if((cuif.opcode == BEQ && cuif.zero == 1) | (cuif.opcode == BNE && cuif.zero == 0)) begin
-      cuif.PCSrc = 2'b01;
+      cuif.tmpPC = 2'b01;
+    end
+
+    //set branch
+    cuif.branch = 1'b0;
+    if(cuif.opcode == BEQ) begin
+      cuif.branch = 1'b1;
     end
 
     //set RegDest
@@ -30,8 +35,6 @@ module control_unit (
     //set RegWEN
     cuif.RegWEN = 1; //in load since its two cycles garbage values gets writtem first and then actual value overwrites it in the next cycle????
     if((cuif.opcode == RTYPE && cuif.funct == JR) | (cuif.opcode == BEQ) | (cuif.opcode == BNE) | (cuif.opcode == SW) | (cuif.opcode == J) | (cuif.opcode == HALT)) begin
-      cuif.RegWEN = 0;
-    end else if((cuif.opcode == LW && cuif.dhit == 1'b0) | (cuif.opcode == SW && cuif.dhit == 1'b0)) begin
       cuif.RegWEN = 0;
     end
 
@@ -63,22 +66,16 @@ module control_unit (
       cuif.halt = 1;
     end
 
-    //set imemreq
-    cuif.imemREN = 1;
-    //if(cuif.opcode == HALT) begin
-    //  cuif.imemREN = 0;
-    //end
-
-    //set dmemreq
-    cuif.dmemreq = 0;
+    //set dmemREN
+    cuif.dmemREN = 0;
     if(cuif.opcode == LW) begin
-      cuif.dmemreq = 1;
+      cuif.dmemREN = 1;
     end
 
-    //set dmemwreq
-    cuif.dmemwreq = 0;
+    //set dmemWEN
+    cuif.dmemWEN = 0;
     if(cuif.opcode == SW) begin
-      cuif.dmemwreq = 1;
+      cuif.dmemWEN = 1;
     end
 
     //set ALUOP
