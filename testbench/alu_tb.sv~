@@ -1,0 +1,49 @@
+/*
+  alu test bench
+*/
+
+// mapped needs this
+`include "alu_if.vh"
+
+// mapped timing needs this. 1ns is too fast
+`timescale 1 ns / 1 ns
+
+module alu_tb;
+
+  // interface
+  alu_if aluif ();
+  
+  // test program
+  test PROG (aluif);
+  
+  // DUT
+`ifndef MAPPED
+  alu DUT(aluif);
+`else
+  alu DUT(
+    .\aluif.negative (aluif.negative),
+    .\aluif.overflow (aluif.overflow),
+    .\aluif.zero (aluif.zero),
+    .\aluif.outputport (aluif.outputport),
+    .\aluif.portA (aluif.portA),
+    .\aluif.portB (aluif.portB),
+    .\aluif.ALUOP (aluif.ALUOP)
+  );
+`endif
+
+endmodule
+
+program test(alu_if.tb aluif);
+  initial begin
+    $monitor("wdat = %h, rdat1 = %h, rdat2 = %h", tbif.wdat, tbif.rdat1,
+tbif.rdat2);
+    // initialize test input signals
+    nRST = 1'b1;
+    tbif.WEN = 1'b0;
+    tbif.wdat = '0;
+    tbif.wsel = '0;
+    tbif.rsel1 = '0;
+    tbif.rsel2 = '0;
+    @(posedge CLK);
+  end
+endprogram
