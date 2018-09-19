@@ -1,8 +1,4 @@
-work
-mapped
-fpga
 transcript
-Makefile
 modelsim.ini
 *.wlf
 README
