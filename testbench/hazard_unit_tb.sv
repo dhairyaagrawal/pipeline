@@ -27,8 +27,8 @@ module hazard_unit_tb;
 `else
   hazard_unit DUT(
     .\huif.instr (huif.instr),
-    .\huif.IDEX_tempPC (huif.IDEX_tempPC),
-    .\huif.EXMEM_tempPC (huif.EXMEM_tempPC),
+    .\huif.IDEX_tmpPC (huif.IDEX_tmpPC),
+    .\huif.EXMEM_tmpPC (huif.EXMEM_tmpPC),
     .\huif.destMEM (huif.destMEM),
     .\huif.destEX (huif.destEX),
     .\huif.rt (huif.rt),
@@ -36,7 +36,8 @@ module hazard_unit_tb;
     .\huif.flush_IDEX (huif.flush_IDEX),
     .\huif.flush_IFID (huif.flush_IFID),
     .\huif.stall_PC (huif.stall_PC),
-    .\huif.stall_IFID (huif.stall_IFID)
+    .\huif.stall_IFID (huif.stall_IFID),
+    .\huif.PCSrc (huif.PCSrc)
   );
 `endif
 
@@ -51,12 +52,14 @@ program test(input logic CLK, hazard_unit_if.tb huif);
   initial begin
     // initialize test input signals
     huif.instr = '0;
-    huif.IDEX_tempPC = '0;
-    huif.EXMEM_tempPC = '0;
+    huif.IDEX_tmpPC = '0;
+    huif.EXMEM_tmpPC = '0;
     huif.destMEM = '0;
     huif.destEX = '0;
     huif.rt = '0;
     huif.rs = '0;
+    huif.tmpPC = '0;
+    huif.PCSrc = '0;
     @(posedge CLK);
 
    //RAW dependency between IFID and IDEX
@@ -75,12 +78,24 @@ program test(input logic CLK, hazard_unit_if.tb huif);
    assert(huif.flush_IDEX == 1 & huif.stall_PC == 1 & huif.stall_IFID == 1)
     else $display("RAW IFID - EXMEM error")
 
+   huif.instr = '0;
+   huif.IDEX_tmpPC = '0;
+   huif.EXMEM_tmpPC = '0;
+   huif.destMEM = '0;
+   huif.destEX = '0;
+   huif.rt = '0;
+   huif.rs = '0;
+   huif.tmpPC = '0;
+   huif.PCSrc = '0;
+
    //JUMP IN ID
    huif.tmpPC = 2;
    @(posedge CLK);
    #2;
    assert(huif.flush_IFID == 1 & huif.stall_PC == 1)
     else $display("JUMP ID error")
+
+   huif.tmpPC = 0;
 
    //JUMP IN EX
    huif.IDEX_tmpPC = 2;
@@ -89,6 +104,8 @@ program test(input logic CLK, hazard_unit_if.tb huif);
    assert(huif.stall_PC == 1 & huif.stall_IFID == 1)
     else $display("JUMP EX error")
 
+   huif.IDEX_tmpPC = 0;
+
    //JUMP IN MEM
    huif.EXMEM_tmpPC = 2;
    @(posedge CLK);
@@ -96,25 +113,40 @@ program test(input logic CLK, hazard_unit_if.tb huif);
    assert(huif.stall_PC == 1 & huif.stall_IFID == 1)
     else $display("JUMP EX error")
 
+   huif.EXMEM_tmpPC = 0;
+
    //BR IN ID no dependencies
    huif.tmpPC = 1;
    @(posedge CLK);
    #2;
-   assert(huif.flush_IFID == 1 & huif.stall_PC == 1)
+   assert(huif.stall_PC == 1)
     else $display("BR ID no depedencies error")
+
+   huif.tmpPC = 0;
 
    //BR IN EX no dependencies
    huif.IDEX_tmpPC = 1;
    @(posedge CLK);
    #2;
-   assert(huif.stall_PC == 1 & huif.stall_IFID == 1)
+   assert(huif.stall_PC == 1 & huif.stall_IFID == 1 & huif.flush_IDEX == 1)
     else $display("BR EX no dependencies error")
 
-   //BR IN MEM no dependencies
+   huif.IDEX_tmpPC = 0;
+
+   //BR IN MEM no dependencies -- Taken
    huif.EXMEM_tmpPC = 1;
+   huif.PCSrc = 1;
    @(posedge CLK);
    #2;
-   assert(huif.stall_PC == 1 & huif.stall_IFID == 1)
+   assert(huif.flush_IFID == 1 & huif.flush_IDEX)
+    else $display("BR EX no dependencies error")
+
+   //BR IN MEM no dependencies -- Not Taken
+   huif.EXMEM_tmpPC = 1;
+   huif.PCSrc = 0;
+   @(posedge CLK);
+   #2;
+   assert(huif.stall_IFID == 1 & huif.flush_IDEX)
     else $display("BR EX no dependencies error")
 
    //BR IN ID dependencies
