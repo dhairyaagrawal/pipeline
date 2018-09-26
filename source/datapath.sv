@@ -16,12 +16,7 @@
 `include "exmem_if.vh"
 `include "memwb_if.vh"
 
-//`include "program_counter_unit.sv"
-//`include "request_unit.sv"
-//`include "control_unit.sv"
-//`include "alu.sv"
-//`include "register_file.sv"
-
+`include "hazard_unit_if.vh"
 
 // alu op, mips op, and instruction type
 `include "cpu_types_pkg.vh"
@@ -45,6 +40,8 @@ module datapath (
   exmem_if exmemif();
   memwb_if memwbif();
 
+  hazard_unit_if huif();
+
   //port map
   control_unit CU (cuif);
   alu ALU (aluif);
@@ -53,6 +50,8 @@ module datapath (
   idex IE (CLK, nRST, idexif);
   exmem EM (CLK, nRST, exmemif);
   memwb MW (CLK, nRST, memwbif);
+
+  hazard_unit HU (huif);
 
   //pipe registers
   logic [63:0] IF_ID;
@@ -67,7 +66,9 @@ module datapath (
     if(!nRST) begin
       PC <= '0;
     end else begin
-      if(dpif.ihit) begin
+      if(huif.stall_PC) begin
+        PC <= PC;
+      end else if(dpif.ihit) begin
         PC <= nextPC;
       end else begin
         PC <= PC;
@@ -89,7 +90,11 @@ module datapath (
     if(!nRST) begin
       IF_ID <= '0;
     end else begin
-      if(dpif.ihit) begin
+      if(huif.stall_IFID) begin
+        IF_ID <= IF_ID;
+      end else if(huif.flush_IFID) begin
+        IF_ID <= '0;
+      end else if(dpif.ihit) begin
         IF_ID <= {npc,dpif.imemload};
       end else begin
         IF_ID <= IF_ID;
@@ -121,8 +126,10 @@ module datapath (
   assign idexif.rdat1_in = rfif.rdat1;
   assign idexif.rdat2_in = rfif.rdat2;
   assign idexif.ihit = dpif.ihit;
+  assign idexif.flush_IDEX = huif.flush_IDEX;
 
   //EX Stage
+  logic [4:0] destEX;
   word_t sign_ext;
   assign sign_ext = {{16{idexif.addr_out[15]}}, idexif.addr_out[15:0]};
 
@@ -150,13 +157,14 @@ module datapath (
   assign exmemif.imm_in = idexif.addr_out[15:0];
   assign exmemif.jaddr_in = {idexif.npc_out[31:28], idexif.addr_out, 2'b00};
   assign exmemif.npc_in = idexif.npc_out;
+  assign exmemif.dest_in = destEX;
   always_comb begin
     if(idexif.EXctrl_out[7:6] == 0) begin //RegDest
-      exmemif.dest_in = idexif.addr_out[15:11]; //rd
+      destEX = idexif.addr_out[15:11]; //rd
     end else if(idexif.EXctrl_out[7:6] == 1) begin
-      exmemif.dest_in = idexif.addr_out[20:16];  //rt
+      destEX = idexif.addr_out[20:16];  //rt
     end else begin
-      exmemif.dest_in = 31;
+      destEX = 31;
     end
   end
   assign exmemif.ihit = dpif.ihit;
@@ -202,5 +210,15 @@ module datapath (
       rfif.wdat = memwbif.npc_out;
     end
   end
+
+  //HAZARD UNIT
+  assign huif.rs = instr[25:21]; //rs
+  assign huif.rt = instr[20:16];  //rt
+  assign huif.destEX = destEX;
+  assign huif.destMEM = exmemif.dest_out;
+  assign huif.tmpPC = cuif.tmpPC;
+  assign huif.IDEX_tmpPC = idexif.MEMctrl_out[4:3];
+  assign huif.EXMEM_tmpPC = exmemif.MEMctrl_out[4:3];
+  assign huif.PCSrc = PCSrc;
 
 endmodule

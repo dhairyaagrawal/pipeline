@@ -39,29 +39,29 @@ add wave -noupdate -group cpu_ram /system_tb/DUT/prif/memREN
 add wave -noupdate -group cpu_ram /system_tb/DUT/prif/memWEN
 add wave -noupdate -group cpu_ram /system_tb/DUT/prif/memaddr
 add wave -noupdate -group cpu_ram /system_tb/DUT/prif/memstore
-add wave -noupdate /system_tb/DUT/CPU/DP/rfif/rdat1
 add wave -noupdate -expand -group rfif /system_tb/DUT/CPU/DP/rfif/WEN
 add wave -noupdate -expand -group rfif /system_tb/DUT/CPU/DP/rfif/wsel
 add wave -noupdate -expand -group rfif /system_tb/DUT/CPU/DP/rfif/rsel1
 add wave -noupdate -expand -group rfif /system_tb/DUT/CPU/DP/rfif/rsel2
 add wave -noupdate -expand -group rfif /system_tb/DUT/CPU/DP/rfif/wdat
+add wave -noupdate -expand -group rfif /system_tb/DUT/CPU/DP/rfif/rdat1
 add wave -noupdate -expand -group rfif /system_tb/DUT/CPU/DP/rfif/rdat2
 add wave -noupdate -expand -group rfif /system_tb/DUT/CPU/DP/RF/my_reg
-add wave -noupdate -expand -group ID_EX /system_tb/DUT/CPU/DP/idexif/rdat1_in
-add wave -noupdate -expand -group ID_EX /system_tb/DUT/CPU/DP/idexif/rdat2_in
-add wave -noupdate -expand -group ID_EX /system_tb/DUT/CPU/DP/idexif/rdat1_out
-add wave -noupdate -expand -group ID_EX /system_tb/DUT/CPU/DP/idexif/rdat2_out
-add wave -noupdate -expand -group ID_EX /system_tb/DUT/CPU/DP/idexif/npc_in
-add wave -noupdate -expand -group ID_EX /system_tb/DUT/CPU/DP/idexif/npc_out
-add wave -noupdate -expand -group ID_EX /system_tb/DUT/CPU/DP/idexif/addr_in
-add wave -noupdate -expand -group ID_EX /system_tb/DUT/CPU/DP/idexif/addr_out
-add wave -noupdate -expand -group ID_EX /system_tb/DUT/CPU/DP/idexif/WBctrl_in
-add wave -noupdate -expand -group ID_EX /system_tb/DUT/CPU/DP/idexif/WBctrl_out
-add wave -noupdate -expand -group ID_EX -expand /system_tb/DUT/CPU/DP/idexif/MEMctrl_in
-add wave -noupdate -expand -group ID_EX -expand /system_tb/DUT/CPU/DP/idexif/MEMctrl_out
-add wave -noupdate -expand -group ID_EX /system_tb/DUT/CPU/DP/idexif/EXctrl_in
-add wave -noupdate -expand -group ID_EX /system_tb/DUT/CPU/DP/idexif/EXctrl_out
-add wave -noupdate -expand -group ID_EX /system_tb/DUT/CPU/DP/idexif/ihit
+add wave -noupdate -group ID_EX /system_tb/DUT/CPU/DP/idexif/rdat1_in
+add wave -noupdate -group ID_EX /system_tb/DUT/CPU/DP/idexif/rdat2_in
+add wave -noupdate -group ID_EX /system_tb/DUT/CPU/DP/idexif/rdat1_out
+add wave -noupdate -group ID_EX /system_tb/DUT/CPU/DP/idexif/rdat2_out
+add wave -noupdate -group ID_EX /system_tb/DUT/CPU/DP/idexif/npc_in
+add wave -noupdate -group ID_EX /system_tb/DUT/CPU/DP/idexif/npc_out
+add wave -noupdate -group ID_EX /system_tb/DUT/CPU/DP/idexif/addr_in
+add wave -noupdate -group ID_EX /system_tb/DUT/CPU/DP/idexif/addr_out
+add wave -noupdate -group ID_EX /system_tb/DUT/CPU/DP/idexif/WBctrl_in
+add wave -noupdate -group ID_EX /system_tb/DUT/CPU/DP/idexif/WBctrl_out
+add wave -noupdate -group ID_EX -expand /system_tb/DUT/CPU/DP/idexif/MEMctrl_in
+add wave -noupdate -group ID_EX -expand /system_tb/DUT/CPU/DP/idexif/MEMctrl_out
+add wave -noupdate -group ID_EX /system_tb/DUT/CPU/DP/idexif/EXctrl_in
+add wave -noupdate -group ID_EX /system_tb/DUT/CPU/DP/idexif/EXctrl_out
+add wave -noupdate -group ID_EX /system_tb/DUT/CPU/DP/idexif/ihit
 add wave -noupdate -expand -group EX_MEM /system_tb/DUT/CPU/DP/exmemif/store_in
 add wave -noupdate -expand -group EX_MEM /system_tb/DUT/CPU/DP/exmemif/store_out
 add wave -noupdate -expand -group EX_MEM /system_tb/DUT/CPU/DP/exmemif/aluout_in
@@ -103,7 +103,7 @@ add wave -noupdate -group MEM_WB /system_tb/DUT/CPU/DP/memwbif/dhit
 add wave -noupdate -group MEM_WB /system_tb/DUT/CPU/DP/memwbif/dmemREN
 add wave -noupdate -group MEM_WB /system_tb/DUT/CPU/DP/memwbif/dmemWEN
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {420000 ps} 1} {{Cursor 2} {640349 ps} 1} {{Cursor 3} {600000 ps} 0}
+WaveRestoreCursors {{Cursor 1} {420000 ps} 1} {{Cursor 2} {640349 ps} 1} {{Cursor 3} {1164773 ps} 0}
 quietly wave cursor active 3
 configure wave -namecolwidth 150
 configure wave -valuecolwidth 100
@@ -119,4 +119,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {0 ps} {541253 ps}
+WaveRestoreZoom {0 ps} {2085757 ps}

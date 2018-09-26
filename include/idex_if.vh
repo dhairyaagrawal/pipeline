@@ -17,7 +17,7 @@ interface idex_if;
   logic [3:0] WBctrl_in, WBctrl_out;
   logic [4:0] MEMctrl_in, MEMctrl_out;
   logic [7:0] EXctrl_in, EXctrl_out;
-  logic ihit;
+  logic ihit, flush_IDEX;
 
   // idex ports
   modport ie (

@@ -23,10 +23,9 @@ module hazard_unit_tb;
   test PROG (CLK, huif); //edited, do i declare another reg_file_if??
   // DUT
 `ifndef MAPPED
-  hazard_unit DUT(CLK, huif);
+  hazard_unit DUT (huif);
 `else
   hazard_unit DUT(
-    .\huif.instr (huif.instr),
     .\huif.IDEX_tmpPC (huif.IDEX_tmpPC),
     .\huif.EXMEM_tmpPC (huif.EXMEM_tmpPC),
     .\huif.destMEM (huif.destMEM),
@@ -37,7 +36,8 @@ module hazard_unit_tb;
     .\huif.flush_IFID (huif.flush_IFID),
     .\huif.stall_PC (huif.stall_PC),
     .\huif.stall_IFID (huif.stall_IFID),
-    .\huif.PCSrc (huif.PCSrc)
+    .\huif.PCSrc (huif.PCSrc),
+    .\huif.tmpPC (huif.tmpPC)
   );
 `endif
 
@@ -51,7 +51,6 @@ endmodule
 program test(input logic CLK, hazard_unit_if.tb huif);
   initial begin
     // initialize test input signals
-    huif.instr = '0;
     huif.IDEX_tmpPC = '0;
     huif.EXMEM_tmpPC = '0;
     huif.destMEM = '0;
@@ -68,7 +67,7 @@ program test(input logic CLK, hazard_unit_if.tb huif);
    @(posedge CLK);
    #2;
    assert(huif.flush_IDEX == 1 & huif.stall_PC == 1 & huif.stall_IFID == 1)
-    else $display("RAW IFID - IDEX error")
+    else $display("RAW IFID - IDEX error");
 
    //RAW dependency between IFID and EXMEM
    huif.rs = 1;
@@ -76,9 +75,8 @@ program test(input logic CLK, hazard_unit_if.tb huif);
    @(posedge CLK);
    #2;
    assert(huif.flush_IDEX == 1 & huif.stall_PC == 1 & huif.stall_IFID == 1)
-    else $display("RAW IFID - EXMEM error")
+    else $display("RAW IFID - EXMEM error");
 
-   huif.instr = '0;
    huif.IDEX_tmpPC = '0;
    huif.EXMEM_tmpPC = '0;
    huif.destMEM = '0;
@@ -90,10 +88,12 @@ program test(input logic CLK, hazard_unit_if.tb huif);
 
    //JUMP IN ID
    huif.tmpPC = 2;
+   huif.destMEM = 31;
+   huif.destEX = 31;   
    @(posedge CLK);
    #2;
-   assert(huif.flush_IFID == 1 & huif.stall_PC == 1)
-    else $display("JUMP ID error")
+   assert(huif.stall_PC == 1)
+    else $display("JUMP ID error");
 
    huif.tmpPC = 0;
 
@@ -101,17 +101,18 @@ program test(input logic CLK, hazard_unit_if.tb huif);
    huif.IDEX_tmpPC = 2;
    @(posedge CLK);
    #2;
-   assert(huif.stall_PC == 1 & huif.stall_IFID == 1)
-    else $display("JUMP EX error")
+   assert(huif.stall_PC == 1 & huif.stall_IFID == 1 & huif.flush_IDEX == 1)
+    else $display("JUMP EX error");
 
    huif.IDEX_tmpPC = 0;
 
    //JUMP IN MEM
    huif.EXMEM_tmpPC = 2;
+   huif.PCSrc = 2;
    @(posedge CLK);
    #2;
-   assert(huif.stall_PC == 1 & huif.stall_IFID == 1)
-    else $display("JUMP EX error")
+   assert(huif.flush_IDEX == 1 & huif.flush_IFID == 1)
+    else $display("JUMP MEM error");
 
    huif.EXMEM_tmpPC = 0;
 
@@ -120,7 +121,7 @@ program test(input logic CLK, hazard_unit_if.tb huif);
    @(posedge CLK);
    #2;
    assert(huif.stall_PC == 1)
-    else $display("BR ID no depedencies error")
+    else $display("BR ID no depedencies error");
 
    huif.tmpPC = 0;
 
@@ -129,7 +130,7 @@ program test(input logic CLK, hazard_unit_if.tb huif);
    @(posedge CLK);
    #2;
    assert(huif.stall_PC == 1 & huif.stall_IFID == 1 & huif.flush_IDEX == 1)
-    else $display("BR EX no dependencies error")
+    else $display("BR EX no dependencies error");
 
    huif.IDEX_tmpPC = 0;
 
@@ -138,8 +139,8 @@ program test(input logic CLK, hazard_unit_if.tb huif);
    huif.PCSrc = 1;
    @(posedge CLK);
    #2;
-   assert(huif.flush_IFID == 1 & huif.flush_IDEX)
-    else $display("BR EX no dependencies error")
+   assert(huif.flush_IFID == 1 & huif.flush_IDEX == 1)
+    else $display("BR MEM no dependencies error");
 
    //BR IN MEM no dependencies -- Not Taken
    huif.EXMEM_tmpPC = 1;
@@ -147,7 +148,7 @@ program test(input logic CLK, hazard_unit_if.tb huif);
    @(posedge CLK);
    #2;
    assert(huif.stall_IFID == 1 & huif.flush_IDEX)
-    else $display("BR EX no dependencies error")
+    else $display("BR MEM no dependencies error not taken");
 
    //BR IN ID dependencies
    huif.tmpPC = 1;
@@ -156,7 +157,7 @@ program test(input logic CLK, hazard_unit_if.tb huif);
    @(posedge CLK);
    #2;
    assert(huif.flush_IDEX == 1 & huif.stall_PC == 1 & huif.stall_IFID == 1)
-    else $display("BR ID depedencies error")
+    else $display("BR ID depedencies error");
 
    //BR IN EX dependencies
    huif.IDEX_tmpPC = 1;
@@ -165,7 +166,7 @@ program test(input logic CLK, hazard_unit_if.tb huif);
    @(posedge CLK);
    #2;
    assert(huif.stall_PC == 1 & huif.stall_IFID == 1)
-    else $display("BR EX dependencies error")
+    else $display("BR EX dependencies error");
 
    //BR IN MEM no dependencies
    huif.EXMEM_tmpPC = 1;
@@ -174,6 +175,6 @@ program test(input logic CLK, hazard_unit_if.tb huif);
    @(posedge CLK);
    #2;
    assert(huif.stall_PC == 1 & huif.stall_IFID == 1)
-    else $display("BR EX dependencies error")
+    else $display("BR EX dependencies error");
   end
 endprogram
