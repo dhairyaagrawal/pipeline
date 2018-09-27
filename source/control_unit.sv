@@ -14,7 +14,7 @@ module control_unit (
       cuif.tmpPC = 2'b11;
     end else if(cuif.opcode == J | cuif.opcode == JAL) begin
       cuif.tmpPC = 2'b10;
-    end else if((cuif.opcode == BEQ && cuif.zero == 1) | (cuif.opcode == BNE && cuif.zero == 0)) begin
+    end else if(cuif.opcode == BEQ | cuif.opcode == BNE) begin
       cuif.tmpPC = 2'b01;
     end
 

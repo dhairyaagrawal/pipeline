@@ -92,7 +92,7 @@ module datapath (
     end else begin
       if(huif.stall_IFID) begin
         IF_ID <= IF_ID;
-      end else if(huif.flush_IFID) begin
+      end else if(dpif.ihit & huif.flush_IFID) begin
         IF_ID <= '0;
       end else if(dpif.ihit) begin
         IF_ID <= {npc,dpif.imemload};
@@ -137,7 +137,7 @@ module datapath (
   assign aluif.ALUOP = aluop_t'(idexif.EXctrl_out[4:1]); //ALUOP
   always_comb begin
     if(idexif.EXctrl_out[5] == 0) begin //ALUSrc
-      aluif.portB = rfif.rdat2;
+      aluif.portB = idexif.rdat2_out;
     end else begin
       if(idexif.EXctrl_out[0] == 0) begin  //ExtOp
         aluif.portB = {16'h0000, idexif.addr_out[15:0]}; //imm16 extended
@@ -221,4 +221,12 @@ module datapath (
   assign huif.EXMEM_tmpPC = exmemif.MEMctrl_out[4:3];
   assign huif.PCSrc = PCSrc;
 
+  //DEBUG
+  r_t rtype;
+  i_t itype;
+  j_t jtype;
+
+  assign rtype = r_t'(instr);
+  assign itype = i_t'(instr);
+  assign jtype = j_t'(instr);
 endmodule

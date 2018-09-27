@@ -18,7 +18,7 @@ module idex (
       idexif.WBctrl_out <= '0;
       idexif.MEMctrl_out <= '0;
       idexif.EXctrl_out <= '0;
-    end else if(idexif.flush_IDEX == 1) begin
+    end else if(idexif.ihit == 1 & idexif.flush_IDEX == 1) begin
       idexif.rdat1_out <= '0;
       idexif.rdat2_out <= '0;
       idexif.addr_out <= '0;
