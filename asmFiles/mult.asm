@@ -2,11 +2,11 @@
   ori   $29, $0, 0xfffc    //set stack pointer
 
   and   $6, $6, $0
-  ori   $6, $6, 4
+  ori   $6, $6, 2
   push  $6                //push first operand
 
   and   $6, $6, $0
-  ori   $6, $6, 8
+  ori   $6, $6, 3
   push  $6                //push second operand
 
 mult:

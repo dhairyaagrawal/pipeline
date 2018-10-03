@@ -12,14 +12,14 @@ module hazard_unit (
     huif.stall_IFID = 1'b0;
     huif.flush_IFID = 1'b0;
     huif.flush_IDEX = 1'b0;
-    if(((huif.rs == huif.destEX | huif.rt == huif.destEX) & huif.destEX != 0) | ((huif.rs == huif.destMEM | huif.rt == huif.destMEM) & huif.destMEM != 0)) begin
+    if(((huif.rs == huif.destEX | huif.rt == huif.destEX) & huif.destEX != 0 & huif.dmemREN)) begin
       huif.stall_PC = 1'b1;
       huif.stall_IFID = 1'b1;
       huif.flush_IDEX = 1'b1;
-    end else if(huif.EXMEM_tmpPC != 0 & huif.EXMEM_tmpPC == huif.PCSrc) begin
+    end else if(huif.EXMEM_tmpPC != 0 & huif.EXMEM_tmpPC == huif.PCSrc) begin //branch taken
       huif.flush_IFID = 1'b1;
       huif.flush_IDEX = 1'b1;
-    end else if(huif.EXMEM_tmpPC != 0 & huif.EXMEM_tmpPC != huif.PCSrc) begin
+    end else if(huif.EXMEM_tmpPC != 0 & huif.EXMEM_tmpPC != huif.PCSrc) begin //branch not taken
       huif.stall_IFID = 1'b1;
       huif.flush_IDEX = 1'b1;
     end else if(huif.IDEX_tmpPC != 0) begin

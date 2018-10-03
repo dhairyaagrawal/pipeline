@@ -18,6 +18,8 @@
 
 `include "hazard_unit_if.vh"
 
+`include "forward_unit_if.vh"
+
 // alu op, mips op, and instruction type
 `include "cpu_types_pkg.vh"
 
@@ -42,6 +44,8 @@ module datapath (
 
   hazard_unit_if huif();
 
+  forward_unit_if fuif();
+
   //port map
   control_unit CU (cuif);
   alu ALU (aluif);
@@ -52,6 +56,8 @@ module datapath (
   memwb MW (CLK, nRST, memwbif);
 
   hazard_unit HU (huif);
+
+  forward_unit FU (fuif);
 
   //pipe registers
   logic [63:0] IF_ID;
@@ -116,11 +122,10 @@ module datapath (
   assign rfif.rsel2 = instr[20:16];
   assign rfif.WEN = memwbif.WBctrl_out[1];
   assign rfif.wsel = memwbif.dest_out;
-  //assign rfif.wdat = ;
 
   assign idexif.WBctrl_in = {cuif.MemtoReg, cuif.RegWEN, cuif.halt};
   assign idexif.MEMctrl_in = {cuif.tmpPC, cuif.branch, cuif.dmemREN, cuif.dmemWEN};
-  assign idexif.EXctrl_in = {cuif.RegDest, cuif.ALUSrc, cuif.ALUOP, cuif.ExtOp};
+  assign idexif.EXctrl_in = {cuif.lui, cuif.RegDest, cuif.ALUSrc, cuif.ALUOP, cuif.ExtOp};
   assign idexif.npc_in = IF_ID[63:32];
   assign idexif.addr_in = instr[25:0];
   assign idexif.rdat1_in = rfif.rdat1;
@@ -131,13 +136,14 @@ module datapath (
   //EX Stage
   logic [4:0] destEX;
   word_t sign_ext;
+  logic [31:0] wordA, wordB;
   assign sign_ext = {{16{idexif.addr_out[15]}}, idexif.addr_out[15:0]};
 
-  assign aluif.portA = idexif.rdat1_out;
+  assign aluif.portA = wordA;
   assign aluif.ALUOP = aluop_t'(idexif.EXctrl_out[4:1]); //ALUOP
   always_comb begin
     if(idexif.EXctrl_out[5] == 0) begin //ALUSrc
-      aluif.portB = idexif.rdat2_out;
+      aluif.portB = wordB;
     end else begin
       if(idexif.EXctrl_out[0] == 0) begin  //ExtOp
         aluif.portB = {16'h0000, idexif.addr_out[15:0]}; //imm16 extended
@@ -150,9 +156,8 @@ module datapath (
   assign exmemif.WBctrl_in = idexif.WBctrl_out;
   assign exmemif.MEMctrl_in = idexif.MEMctrl_out;
   assign exmemif.baddr_in = idexif.npc_out + (sign_ext << 2);
-  assign exmemif.store_in = idexif.rdat2_out;
-  assign exmemif.reg31_in = idexif.rdat1_out;
-  assign exmemif.aluout_in = aluif.outputport;
+  assign exmemif.store_in = wordB;
+  assign exmemif.reg31_in = wordA;
   assign exmemif.zero_in = aluif.zero;
   assign exmemif.imm_in = idexif.addr_out[15:0];
   assign exmemif.jaddr_in = {idexif.npc_out[31:28], idexif.addr_out, 2'b00};
@@ -169,6 +174,13 @@ module datapath (
   end
   assign exmemif.ihit = dpif.ihit;
   assign exmemif.dhit = dpif.dhit;
+
+  always_comb begin
+    exmemif.aluout_in = aluif.outputport;
+    if(idexif.EXctrl_out[8]) begin
+      exmemif.aluout_in = (idexif.addr_out[15:0] << 16);
+    end
+  end
 
   //MEM Stage
   assign dpif.dmemstore = exmemif.store_out;
@@ -200,6 +212,7 @@ module datapath (
   //WB Stage
   assign dpif.halt = memwbif.WBctrl_out[0];
   always_comb begin
+    rfif.wdat = '0;
     if(memwbif.WBctrl_out[3:2] == 0) begin
       rfif.wdat = memwbif.aluout_out;
     end else if(memwbif.WBctrl_out[3:2] == 1) begin
@@ -215,11 +228,41 @@ module datapath (
   assign huif.rs = instr[25:21]; //rs
   assign huif.rt = instr[20:16];  //rt
   assign huif.destEX = destEX;
-  assign huif.destMEM = exmemif.dest_out;
+  assign huif.dmemREN = idexif.MEMctrl_out[1];
   assign huif.tmpPC = cuif.tmpPC;
   assign huif.IDEX_tmpPC = idexif.MEMctrl_out[4:3];
   assign huif.EXMEM_tmpPC = exmemif.MEMctrl_out[4:3];
   assign huif.PCSrc = PCSrc;
+
+  //FORWARD UNIT
+  assign fuif.rsEX = idexif.addr_out[25:21]; //rs
+  assign fuif.rtEX = idexif.addr_out[20:16]; //rt
+  assign fuif.destMEM = exmemif.dest_out;
+  assign fuif.destWB = memwbif.dest_out;
+  assign fuif.wenMEM = exmemif.WBctrl_out[1];
+  assign fuif.wenWB = memwbif.WBctrl_out[1];
+  always_comb begin
+    //muxA
+    if(fuif.selA == 0) begin
+      wordA = idexif.rdat1_out;
+    end else if(fuif.selA == 1) begin
+      wordA = exmemif.aluout_out;
+    end else if(fuif.selA == 2) begin
+      wordA = rfif.wdat;
+    end
+
+    //muxB
+    if(fuif.selB == 0) begin
+      wordB = idexif.rdat2_out;
+    end else if(fuif.selB == 1) begin
+      wordB = exmemif.aluout_out;
+    end else if(fuif.selB == 2) begin
+      wordB = rfif.wdat;
+    end
+  end
+
+
+
 
   //DEBUG
   r_t rtype;

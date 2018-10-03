@@ -8,6 +8,12 @@ module control_unit (
 );
 
   always_comb begin //tried sensitivity list
+    //set LUI
+    cuif.lui = 1'b0;
+    if(cuif.opcode == LUI) begin
+      cuif.lui = 1'b1;
+    end    
+
     //set tmpPC
     cuif.tmpPC = 2'b00;
     if(cuif.opcode == RTYPE && cuif.funct == JR) begin
