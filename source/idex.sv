@@ -18,6 +18,7 @@ module idex (
       idexif.WBctrl_out <= '0;
       idexif.MEMctrl_out <= '0;
       idexif.EXctrl_out <= '0;
+      idexif.instr_out <= '0;
     end else if(idexif.ihit == 1 & idexif.flush_IDEX == 1) begin
       idexif.rdat1_out <= '0;
       idexif.rdat2_out <= '0;
@@ -26,6 +27,7 @@ module idex (
       idexif.WBctrl_out <= '0;
       idexif.MEMctrl_out <= '0;
       idexif.EXctrl_out <= '0;
+      idexif.instr_out <= '0;
     end else if(idexif.ihit == 1) begin
       idexif.rdat1_out <= idexif.rdat1_in;
       idexif.rdat2_out <= idexif.rdat2_in;
@@ -34,6 +36,7 @@ module idex (
       idexif.WBctrl_out <= idexif.WBctrl_in;
       idexif.MEMctrl_out <= idexif.MEMctrl_in;
       idexif.EXctrl_out <= idexif.EXctrl_in;
+      idexif.instr_out <= idexif.instr_in;
     end
   end
 

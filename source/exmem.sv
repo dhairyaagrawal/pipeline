@@ -22,8 +22,11 @@ module exmem (
       exmemif.WBctrl_out <= '0;
       exmemif.MEMctrl_out <= '0;
       exmemif.npc_out <= '0;
+      exmemif.instr_out <= '0;
+      exmemif.dmemload_out <= '0;
     end else if(exmemif.dhit) begin
       exmemif.MEMctrl_out[1:0] <= '0;
+      exmemif.dmemload_out <= exmemif.dmemload_in;
     end else if(exmemif.ihit == 1) begin
       exmemif.store_out <= exmemif.store_in;
       exmemif.aluout_out <= exmemif.aluout_in;
@@ -36,6 +39,7 @@ module exmem (
       exmemif.WBctrl_out <= exmemif.WBctrl_in;
       exmemif.MEMctrl_out <= exmemif.MEMctrl_in;
       exmemif.npc_out <= exmemif.npc_in;
+      exmemif.instr_out <= exmemif.instr_in;
     end
   end
 endmodule

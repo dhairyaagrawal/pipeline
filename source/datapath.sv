@@ -115,6 +115,7 @@ module datapath (
   word_t instr;
 
   assign instr = IF_ID[31:0];
+  assign idexif.instr_in = instr;
   assign cuif.opcode = opcode_t'(instr[31:26]);
   assign cuif.funct = funct_t'(instr[5:0]);
 
@@ -137,6 +138,8 @@ module datapath (
   logic [4:0] destEX;
   word_t sign_ext;
   logic [31:0] wordA, wordB;
+
+  assign exmemif.instr_in = idexif.instr_out;
   assign sign_ext = {{16{idexif.addr_out[15]}}, idexif.addr_out[15:0]};
 
   assign aluif.portA = wordA;
@@ -153,6 +156,7 @@ module datapath (
     end
   end
 
+  assign exmemif.dmemload_in = dpif.dmemload;
   assign exmemif.WBctrl_in = idexif.WBctrl_out;
   assign exmemif.MEMctrl_in = idexif.MEMctrl_out;
   assign exmemif.baddr_in = idexif.npc_out + (sign_ext << 2);
@@ -183,13 +187,14 @@ module datapath (
   end
 
   //MEM Stage
+  assign memwbif.instr_in = exmemif.instr_out;
   assign dpif.dmemstore = exmemif.store_out;
   assign dpif.dmemaddr = exmemif.aluout_out;
   assign dpif.dmemREN = exmemif.MEMctrl_out[1];
   assign dpif.dmemWEN = exmemif.MEMctrl_out[0];
-  assign memwbif.dmemREN = exmemif.MEMctrl_out[1];
-  assign memwbif.dmemWEN = exmemif.MEMctrl_out[0];
-  assign memwbif.dmemload_in = dpif.dmemload;
+  //assign memwbif.dmemREN = exmemif.MEMctrl_out[1];
+  //assign memwbif.dmemWEN = exmemif.MEMctrl_out[0];
+  assign memwbif.dmemload_in = exmemif.dmemload_out;
   assign memwbif.aluout_in = exmemif.aluout_out;
   assign memwbif.imm_in = exmemif.imm_out;
   assign memwbif.npc_in = exmemif.npc_out;
@@ -210,6 +215,7 @@ module datapath (
   assign memwbif.dhit = dpif.dhit;
 
   //WB Stage
+  word_t instrWB;
   assign dpif.halt = memwbif.WBctrl_out[0];
   always_comb begin
     rfif.wdat = '0;
@@ -242,6 +248,7 @@ module datapath (
   assign fuif.wenMEM = exmemif.WBctrl_out[1];
   assign fuif.wenWB = memwbif.WBctrl_out[1];
   always_comb begin
+    wordA = '0;
     //muxA
     if(fuif.selA == 0) begin
       wordA = idexif.rdat1_out;
@@ -251,6 +258,7 @@ module datapath (
       wordA = rfif.wdat;
     end
 
+    wordB = '0;
     //muxB
     if(fuif.selB == 0) begin
       wordB = idexif.rdat2_out;
@@ -265,11 +273,40 @@ module datapath (
 
 
   //DEBUG
-  r_t rtype;
-  i_t itype;
-  j_t jtype;
 
-  assign rtype = r_t'(instr);
-  assign itype = i_t'(instr);
-  assign jtype = j_t'(instr);
+  r_t rtypeIF;
+  i_t itypeIF;
+  j_t jtypeIF;
+  r_t rtypeIFID;
+  i_t itypeIFID;
+  j_t jtypeIFID;
+  r_t rtypeIDEX;
+  i_t itypeIDEX;
+  j_t jtypeIDEX;
+  r_t rtypeEXMEM;
+  j_t jtypeEXMEM;
+  i_t itypeEXMEM;
+  r_t rtypeMEMWB;
+  j_t jtypeMEMWB;
+  i_t itypeMEMWB;
+
+  assign rtypeIF = r_t'(dpif.imemload);
+  assign itypeIF = i_t'(dpif.imemload);
+  assign jtypeIF = j_t'(dpif.imemload);
+
+  assign rtypeIFID = r_t'(instr);
+  assign itypeIFID = i_t'(instr);
+  assign jtypeIFID = j_t'(instr);
+
+  assign rtypeIDEX = r_t'(idexif.instr_out);
+  assign itypeIDEX = i_t'(idexif.instr_out);
+  assign jtypeIDEX = j_t'(idexif.instr_out);
+
+  assign rtypeEXMEM = r_t'(exmemif.instr_out);
+  assign itypeEXMEM = i_t'(exmemif.instr_out);
+  assign jtypeEXMEM = j_t'(exmemif.instr_out);
+
+  assign rtypeMEMWB = r_t'(memwbif.instr_out);
+  assign itypeMEMWB = i_t'(memwbif.instr_out);
+  assign jtypeMEMWB = j_t'(memwbif.instr_out);
 endmodule

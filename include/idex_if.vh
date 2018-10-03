@@ -13,6 +13,7 @@ interface idex_if;
 
   word_t rdat1_in, rdat2_in, rdat1_out, rdat2_out;
   word_t npc_in, npc_out;
+  word_t instr_in, instr_out;
   logic [25:0] addr_in, addr_out;
   logic [3:0] WBctrl_in, WBctrl_out;
   logic [4:0] MEMctrl_in, MEMctrl_out;
@@ -22,14 +23,16 @@ interface idex_if;
   // idex ports
   modport ie (
     input   rdat1_in, rdat2_in, npc_in, WBctrl_in, MEMctrl_in, EXctrl_in, ihit,
-addr_in, flush_IDEX,
-    output  rdat1_out, rdat2_out, npc_out, WBctrl_out, MEMctrl_out, EXctrl_out, addr_out
+addr_in, flush_IDEX, instr_in,
+    output  rdat1_out, rdat2_out, npc_out, WBctrl_out, MEMctrl_out, EXctrl_out,
+addr_out, instr_out
   );
   // idex tb
   modport tb (
     output   rdat1_in, rdat2_in, npc_in, WBctrl_in, MEMctrl_in, EXctrl_in, ihit,
-addr_in, flush_IDEX,
-    input  rdat1_out, rdat2_out, npc_out, WBctrl_out, MEMctrl_out, EXctrl_out, addr_out
+addr_in, flush_IDEX, instr_in,
+    input  rdat1_out, rdat2_out, npc_out, WBctrl_out, MEMctrl_out, EXctrl_out,
+addr_out, instr_out
   );
 endinterface
 
