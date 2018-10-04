@@ -216,7 +216,16 @@ module datapath (
 
   //WB Stage
   word_t instrWB;
-  assign dpif.halt = memwbif.WBctrl_out[0];
+  //assign dpif.halt = memwbif.WBctrl_out[0];
+  always_ff @(posedge CLK, negedge nRST) begin
+    if(!nRST) begin
+      dpif.halt <= 0;
+    end else if (memwbif.WBctrl_out[0]) begin
+      dpif.halt <= 1;
+    end else begin
+      dpif.halt <= dpif.halt;
+    end
+  end
   always_comb begin
     rfif.wdat = '0;
     if(memwbif.WBctrl_out[3:2] == 0) begin
