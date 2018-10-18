@@ -10,7 +10,7 @@
 
 module dcache (
   input logic CLK, nRST,
-  datapath_cache_if.dcache dcif,
+  datapath_cache_if.dcache dpif,
   caches_if.dcache cif
 );
 
@@ -35,15 +35,15 @@ module dcache (
   logic offset;
   logic [2:0] index_in;
 
-  assign tagbits = dcif.dmemaddr[31:6];
-  assign offset = dcif.dmemaddr[2];
-  assign index_in = (cfif.flushing == 1) ? cfif.ct : dcif.dmemaddr[5:3]; //INDEX MUX
+  assign tagbits = dpif.dmemaddr[31:6];
+  assign offset = dpif.dmemaddr[2];
+  assign index_in = (cfif.flushing == 1) ? cfif.ct : dpif.dmemaddr[5:3]; //INDEX MUX
 
   //ACCESS LOGIC
   assign alif.tagbits = tagbits;
   assign alif.offset = offset;
-  assign alif.dmemREN = dcif.dmemREN;
-  assign alif.dmemWEN = dcif.dmemWEN;
+  assign alif.dmemREN = dpif.dmemREN;
+  assign alif.dmemWEN = dpif.dmemWEN;
   assign alif.valid0 = set0[index_in].valid;
   assign alif.tag0 = set0[index_in].tag;
   assign alif.data0 = set0[index_in].data;
@@ -51,8 +51,8 @@ module dcache (
   assign alif.tag1 = set1[index_in].tag;
   assign alif.data1 = set1[index_in].data;
 
-  assign dcif.dmemload = alif.data_out;
-  assign dcif.dhit = ~alif.miss;
+  assign dpif.dmemload = alif.data_out;
+  assign dpif.dhit = ~alif.miss;
 
   //DCACHE
   integer i;
@@ -74,11 +74,11 @@ module dcache (
       set1[index_in].valid <= 1'b0;
     end else if(alif.WENcache) begin
       if(alif.setsel) begin
-        set1[index_in].data[offset] <= dcif.dmemstore;
+        set1[index_in].data[offset] <= dpif.dmemstore;
         set1[index_in].dirty <= 1'b1;
         lru_reg[index_in] <= ~alif.setsel;
       end else if(~alif.setsel) begin
-        set0[index_in].data[offset] <= dcif.dmemstore;
+        set0[index_in].data[offset] <= dpif.dmemstore;
         set0[index_in].dirty <= 1'b1;
         lru_reg[index_in] <= ~alif.setsel;
       end
@@ -106,13 +106,13 @@ module dcache (
   assign cfif.tag1 = set1[index_in].tag;
   assign cfif.data1 = set1[index_in].data;
   assign cfif.dwait = cif.dwait;
-  assign cfif.dmemaddr = dcif.dmemaddr;
-  assign cfif.dmemREN = dcif.dmemREN;
-  assign cfif.dmemWEN = dcif.dmemWEN;
-  assign cfif.halt = dcif.halt;
+  assign cfif.dmemaddr = dpif.dmemaddr;
+  assign cfif.dmemREN = dpif.dmemREN;
+  assign cfif.dmemWEN = dpif.dmemWEN;
+  assign cfif.halt = dpif.halt;
   assign cfif.miss = alif.miss;
 
-  assign dcif.flushed = cfif.flushed;
+  assign dpif.flushed = cfif.flushed;
   assign cif.dREN = cfif.dREN;
   assign cif.dWEN = cfif.dWEN;
   assign cif.daddr = cfif.daddr;
