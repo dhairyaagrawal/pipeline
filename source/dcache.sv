@@ -84,16 +84,22 @@ module dcache (
       end
     end else if(~cif.dwait) begin
       if(lru_reg[index_in] == 1'b1) begin
-        set1[index_in].data[cfif.control_offset] = cif.dload;
-        set1[index_in].tag = tagbits;
-        set1[index_in].valid = 1'b1;
-        set1[index_in].dirty = 1'b0;
+        set1[index_in].data[cfif.control_offset] <= cif.dload;
+        set1[index_in].dirty <= 1'b0;
+        if(cfif.tagWEN) begin
+          set1[index_in].tag <= tagbits;
+          set1[index_in].valid <= 1'b1;
+        end
       end else if(lru_reg[index_in] == 1'b0) begin
-        set0[index_in].data[cfif.control_offset] = cif.dload;
-        set0[index_in].tag = tagbits;
-        set0[index_in].valid = 1'b1;
-        set0[index_in].dirty = 1'b0;
+        set0[index_in].data[cfif.control_offset] <= cif.dload;
+        set0[index_in].dirty <= 1'b0;
+        if(cfif.tagWEN) begin
+          set0[index_in].tag <= tagbits;
+          set0[index_in].valid <= 1'b1;
+        end
       end
+    end else if(~alif.miss) begin
+      lru_reg[index_in] <= ~alif.setsel;
     end
   end
   

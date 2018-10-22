@@ -108,6 +108,7 @@ module control_fsm (
     cfif.flushing = 1'b0;
     cfif.control_offset = 1'b0;
     cfif.flushed = 1'b0;
+    cfif.tagWEN = 1'b0;
     case(state)
       IDLE : cfif.flushed = 1'b0;
       WRAM0 : begin 
@@ -129,6 +130,7 @@ module control_fsm (
               cfif.dREN = 1;
               cfif.daddr = {cfif.dmemaddr[31:3], 3'b100};
               cfif.control_offset = 1;
+              cfif.tagWEN = 1'b1;
       end
       CHK0 : cfif.flushing = 1'b1;
       FWRAM0 : begin
