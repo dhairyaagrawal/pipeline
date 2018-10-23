@@ -50,6 +50,7 @@ module dcache (
   assign alif.valid1 = set1[index_in].valid;
   assign alif.tag1 = set1[index_in].tag;
   assign alif.data1 = set1[index_in].data;
+  assign alif.halt = dpif.halt;
 
   assign dpif.dmemload = alif.data_out;
   assign dpif.dhit = ~alif.miss;

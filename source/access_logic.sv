@@ -12,7 +12,9 @@ module access_logic (
     alif.miss = 1'b1;
     alif.setsel = 1'b0;
     alif.WENcache = 1'b0;
-    if(alif.dmemREN) begin
+    if(alif.halt) begin
+      alif.WENcache = 1'b0;
+    end else if(alif.dmemREN) begin
       if(alif.tagbits == alif.tag0 && alif.valid0) begin
         alif.miss = 1'b0;
         alif.setsel = 1'b0;

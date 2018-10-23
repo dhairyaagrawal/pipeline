@@ -42,12 +42,12 @@ module control_fsm (
   always_comb begin
     nextstate = state;
     case(state)
-      IDLE : if(cfif.miss && dirty && access) begin
+      IDLE : if(cfif.halt) begin
+               nextstate = CHK0;
+             end else if(cfif.miss && dirty && access) begin
                nextstate = WRAM0;
              end else if(cfif.miss && !dirty && access) begin
                nextstate = RRAM0;
-             end else if(cfif.halt) begin
-               nextstate = CHK0;
              end
       WRAM0 : if(!cfif.dwait) begin
                 nextstate = WRAM1;
