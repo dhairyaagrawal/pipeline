@@ -22,16 +22,16 @@ module caches (
   import cpu_types_pkg::*;
   parameter CPUID = 0;
 
-  word_t instr;
-  word_t daddr;
+  //word_t instr;
+  //word_t daddr;
 
   // icache
-  //icache  ICACHE(dcif, cif);
+  icache  ICACHE(CLK, nRST, dcif, cif);
   // dcache
-  //dcache  DCACHE(dcif, cif);
+  dcache  DCACHE(CLK, nRST, dcif, cif);
 
   // single cycle instr saver (for memory ops)
-  always_ff @(posedge CLK)
+  /*always_ff @(posedge CLK)
   begin
     if (!nRST)
     begin
@@ -60,6 +60,6 @@ module caches (
   assign cif.dWEN = dcif.dmemWEN;
   assign cif.dstore = dcif.dmemstore;
   assign cif.iaddr = dcif.imemaddr;
-  assign cif.daddr = dcif.dmemaddr;
+  assign cif.daddr = dcif.dmemaddr;*/
 
 endmodule

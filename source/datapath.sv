@@ -62,6 +62,7 @@ module datapath (
   //pipe registers
   logic [63:0] IF_ID;
   logic [1:0] PCSrc;
+  logic ihit;
 
   //IF Stage
   word_t PC;
@@ -74,7 +75,7 @@ module datapath (
     end else begin
       if(huif.stall_PC) begin
         PC <= PC;
-      end else if(dpif.ihit) begin
+      end else if(ihit) begin
         PC <= nextPC;
       end else begin
         PC <= PC;
@@ -98,9 +99,9 @@ module datapath (
     end else begin
       if(huif.stall_IFID) begin
         IF_ID <= IF_ID;
-      end else if(dpif.ihit & huif.flush_IFID) begin
+      end else if(ihit & huif.flush_IFID) begin
         IF_ID <= '0;
-      end else if(dpif.ihit) begin
+      end else if(ihit) begin
         IF_ID <= {npc,dpif.imemload};
       end else begin
         IF_ID <= IF_ID;
@@ -131,7 +132,7 @@ module datapath (
   assign idexif.addr_in = instr[25:0];
   assign idexif.rdat1_in = rfif.rdat1;
   assign idexif.rdat2_in = rfif.rdat2;
-  assign idexif.ihit = dpif.ihit;
+  assign idexif.ihit = ihit;
   assign idexif.flush_IDEX = huif.flush_IDEX;
 
   //EX Stage
@@ -176,7 +177,7 @@ module datapath (
       destEX = 31;
     end
   end
-  assign exmemif.ihit = dpif.ihit;
+  assign exmemif.ihit = ihit;
   assign exmemif.dhit = dpif.dhit;
 
   always_comb begin
@@ -192,8 +193,6 @@ module datapath (
   assign dpif.dmemaddr = exmemif.aluout_out;
   assign dpif.dmemREN = exmemif.MEMctrl_out[1];
   assign dpif.dmemWEN = exmemif.MEMctrl_out[0];
-  //assign memwbif.dmemREN = exmemif.MEMctrl_out[1];
-  //assign memwbif.dmemWEN = exmemif.MEMctrl_out[0];
   assign memwbif.dmemload_in = exmemif.dmemload_out;
   assign memwbif.aluout_in = exmemif.aluout_out;
   assign memwbif.imm_in = exmemif.imm_out;
@@ -211,8 +210,16 @@ module datapath (
       PCSrc = exmemif.MEMctrl_out[4:3]; //set PCSrc to tmpPC
     end
   end
-  assign memwbif.ihit = dpif.ihit;
+  assign memwbif.ihit = ihit;
   assign memwbif.dhit = dpif.dhit;
+
+  always_comb begin //ihit before dhit handle logic
+    if(dpif.dmemREN || dpif.dmemWEN) begin
+      ihit = 1'b0;
+    end else begin
+      ihit = dpif.ihit;
+    end
+  end
 
   //WB Stage
   word_t instrWB;

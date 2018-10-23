@@ -9,8 +9,7 @@ import cpu_types_pkg::*;
 module icache (
   input logic CLK, nRST,
   datapath_cache_if.icache dpif,
-  caches_if.icache icif,
-  icache_if.icache icacheif
+  caches_if.icache icif
 );
 
   icache_frame [15:0] icache;
@@ -23,8 +22,8 @@ module icache (
   assign frameIn.idx = dpif.imemaddr[5:2];
   assign frameIn.bytoff = '0;
   assign cacheData = icache[frameIn.idx].data;
-  assign icacheif.miss = miss;
-  assign icacheif.icacheFrame = icache;
+  //assign icacheif.miss = miss;
+  //assign icacheif.icacheFrame = icache;
 
   always_ff @(posedge CLK, negedge nRST) begin
     if(nRST == 0) begin
