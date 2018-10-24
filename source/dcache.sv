@@ -103,7 +103,7 @@ module dcache (
       lru_reg[index_in] <= ~alif.setsel;
     end
   end
-  
+
   //CONTROL FSM
   assign cfif.LRU = lru_reg[index_in];
   assign cfif.dirty0 = set0[index_in].dirty;
