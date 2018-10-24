@@ -227,7 +227,7 @@ module datapath (
   always_ff @(posedge CLK, negedge nRST) begin
     if(!nRST) begin
       dpif.halt <= 0;
-    end else if (memwbif.WBctrl_out[0]) begin
+    end else if (exmemif.WBctrl_out[0]) begin
       dpif.halt <= 1;
     end else begin
       dpif.halt <= dpif.halt;
