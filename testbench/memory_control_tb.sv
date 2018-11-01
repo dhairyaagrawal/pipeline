@@ -144,6 +144,8 @@ program test(input logic CLK, output logic nRST, caches_if.caches cif0, caches_i
     @(posedge CLK);
   end
   @(posedge CLK);
+  cif0.iREN = '0;
+  cif1.iREN = '0;
 
   //tc2, data write, preference dcache0
   @(negedge CLK);
@@ -214,6 +216,7 @@ program test(input logic CLK, output logic nRST, caches_if.caches cif0, caches_i
   #1;
   //read 1
   while(ramif.ramstate != ACCESS) begin
+    #1;
     assert(ramif.ramREN == 1 & ramif.ramaddr == cif0.daddr & cif1.ccwait == 0)
       else $display("tc3 ram read 1 error, %d, %h, %d", ramif.ramREN, ramif.ramaddr, cif1.ccwait);
     @(posedge CLK);
