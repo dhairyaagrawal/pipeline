@@ -22,18 +22,18 @@ module memory_control_tb;
   //interface
   caches_if cif0();
   caches_if cif1(); //not used right?
-  cache_control_if #(.CPUS(1)) ccif(cif0, cif1); //this is the way?
+  cache_control_if #(.CPUS(2)) ccif(cif0, cif1); //this is the way?
 
   cpu_ram_if ramif();
 
   //test program
-  test PROG (CLK,nRST,cif0,ramif);
+  test PROG (CLK,nRST,cif0,cif1,ramif);
 
   //portmap
   `ifndef MAPPED
-    memory_control #(.CPUS(1)) DUT(CLK, nRST, ccif);
+    memory_control #(.CPUS(2)) DUT(CLK, nRST, ccif);
   `else
-    memory_control #(.CPUS(1)) DUT(
+    memory_control #(.CPUS(2)) DUT(
       .\CLK (CLK),
       .\nRST (nRST),
       .\ccif.iREN (ccif.iREN),
@@ -46,13 +46,11 @@ module memory_control_tb;
       .\ccif.dwait (ccif.dwait),
       .\ccif.iload (ccif.iload),
       .\ccif.dload (ccif.dload),
-
-      //.\ccif.ccwrite (ccif.ccwrite),
-      //.\ccif.cctrans (ccif.cctrans),
-      //.\ccif.ccwait (ccif.ccwait),
-      //.\ccif.ccinv (ccif.ccinv),
-      //.\ccif.ccsnoopaddr (ccif.ccsnoopaddr),
-
+      .\ccif.ccwrite (ccif.ccwrite),
+      .\ccif.cctrans (ccif.cctrans),
+      .\ccif.ccwait (ccif.ccwait),
+      .\ccif.ccinv (ccif.ccinv),
+      .\ccif.ccsnoopaddr (ccif.ccsnoopaddr),
       .\ccif.ramload (ccif.ramload),
       .\ccif.ramstate (ccif.ramstate), //outputs now
       .\ccif.ramstore (ccif.ramstore),
@@ -85,144 +83,196 @@ module memory_control_tb;
   assign ccif.ramstate = ramif.ramstate;
 endmodule
 
-program test(input logic CLK, output logic nRST, caches_if.caches cif, cpu_ram_if.ram ramif);
+program test(input logic CLK, output logic nRST, caches_if.caches cif0, caches_if.caches cif1, cpu_ram_if.ram ramif);
   import cpu_types_pkg::*;
   initial begin
   //dREN, dWEN, daddr, dstore,iREN, iaddr - outputs
   //dwait, dload, iwait, iload - inputs
   //read data, store data, read inst, read data and inst - testcases
-  
+
   //initialize
+  integer i;
   nRST = 1'b1;
   @(posedge CLK);
   nRST = 1'b0;
   @(posedge CLK);
   nRST = 1'b1;
-  cif.dREN = 1'b0;
-  cif.dWEN = 1'b0;
-  cif.daddr = '0;
-  cif.dstore = '0;
-  cif.iREN = 1'b0;
-  cif.iaddr = '0;
+  cif0.dREN = 1'b0;
+  cif0.dWEN = 1'b0;
+  cif0.daddr = '0;
+  cif0.dstore = '0;
+  cif0.iREN = 1'b0;
+  cif0.iaddr = '0;
+  cif1.dREN = 1'b0;
+  cif1.dWEN = 1'b0;
+  cif1.daddr = '0;
+  cif1.dstore = '0;
+  cif1.iREN = 1'b0;
+  cif1.iaddr = '0;
   @(posedge CLK);
 
-  //store data
-  cif.daddr = 32'h00000000;
-  cif.dstore = 32'hf0f0f0f0;
-  cif.dWEN = 1'b1;
-  @(posedge CLK);  
-  //while(cif.dwait);
-  while(ramif.ramstate != ACCESS) begin
-    assert(cif.iwait && cif.dwait)
-    else $display("iwait dwait error");
-    @(posedge CLK);
-  end
-  #5;
-  //cif.dWEN = 1'b0;
-  @(posedge CLK);
-
-  cif.daddr = 32'h00000004;
-  cif.dstore = 32'h10101010;
-  cif.dWEN = 1'b1;
-  @(posedge CLK);
-  //while(cif.dwait);
-  while(ramif.ramstate != ACCESS) begin
-    assert(cif.iwait && cif.dwait)
-    else $display("iwait dwait error");
-    @(posedge CLK);
-  end
-  #5;
-  @(posedge CLK);
-  cif.dWEN = 1'b0;
-
-  //read data
-  cif.daddr = 32'h00000000;
-  cif.dREN = 1'b1;
-  @(posedge CLK);
-  //while(cif.dwait);
-  while(ramif.ramstate != ACCESS) begin
-    assert(cif.iwait && cif.dwait)
-    else $display("iwait dwait error");
-    @(posedge CLK);
-  end
-  #5;
-  if(cif.dload == 32'hf0f0f0f0) begin
-    $display("read/write just data works");
-  end else begin
-    $display("read/write just data fails");
-  end
-  @(posedge CLK);
-  cif.dREN = 1'b0; // before or after checking
-
-
-  cif.daddr = 32'h00000004;
-  cif.dREN = 1'b1;
-  @(posedge CLK);
-  //while(cif.dwait);
-  while(ramif.ramstate != ACCESS) begin
-    assert(cif.iwait && cif.dwait)
-    else $display("iwait dwait error");
-    @(posedge CLK);
-  end
-  #5;
-  if(cif.dload == 32'h10101010) begin
-    $display("read/write just data 2 works");
-  end else begin
-    $display("read/write just data 2 fails");
-  end
-  @(posedge CLK);
-  cif.dREN = 1'b0; // before or after checking
-
-
-  //read instruction
-  cif.iaddr = 32'h00000004;
-  cif.iREN = 1'b1;
-  @(posedge CLK);
-  //while(cif.iwait);
-  while(ramif.ramstate != ACCESS) begin
-    @(posedge CLK);
-  end
-  #5;
-  if(cif.iload == 32'h10101010) begin
-    $display("read just instruction works");
-  end else begin
-    $display("read just instruction fails");
-  end
-  cif.iREN = 1'b0; // before or after checking
+  //tc1, iREN
   @(negedge CLK);
+  cif0.iaddr = 32'h00000000;
+  cif0.iREN = 1;
+  cif1.iaddr = 32'h00001000;
+  cif1.iREN = 1;
+  @(posedge CLK);
+  @(posedge CLK);
+  while(ramif.ramstate != ACCESS) begin
+    #1;
+    assert(ramif.ramREN == 1 & ramif.ramaddr == cif0.iaddr)
+      else $display("tc1 iREN 0 error");
+    @(posedge CLK);
+  end
+  @(posedge CLK);
+  @(posedge CLK);
+  @(posedge CLK);
+  while(ramif.ramstate != ACCESS) begin
+    #1;
+    assert(ramif.ramREN == 1 & ramif.ramaddr == cif1.iaddr)
+      else $display("tc1 iREN 1 error");
+    @(posedge CLK);
+  end
+  @(posedge CLK);
+  @(posedge CLK);
+  @(posedge CLK);
+  while(ramif.ramstate != ACCESS) begin
+    #1;
+    assert(ramif.ramREN == 1 & ramif.ramaddr == cif0.iaddr)
+      else $display("tc1 iREN 2 error");
+    @(posedge CLK);
+  end
+  @(posedge CLK);
 
-  //read both data and instruction
-  cif.iaddr = 32'h00000000;
-  cif.daddr = 32'h00000004;
-  cif.iREN = 1'b1;
-  cif.dREN = 1'b1;
-  @(posedge CLK);
-  //while(cif.dwait);
-  while(ramif.ramstate != ACCESS) begin
-    @(posedge CLK);
-  end
-  #5;
-  if(cif.dload == 32'h10101010 && cif.iwait) begin
-    $display("arbitration works");
-  end else begin
-    $display("arbitration fails");
-  end
-  cif.dREN = 1'b0;
-  @(posedge CLK);
-  //while(cif.iwait);
-  while(ramif.ramstate != ACCESS) begin
-    @(posedge CLK);
-  end
-  #5;
-  if(cif.iload == 32'hf0f0f0f0) begin
-    $display("arbitration works 2");
-  end else begin
-    $display("arbitration fails 2");
-  end
-  cif.iREN = 1'b0;
+  //tc2, data write, preference dcache0
   @(negedge CLK);
+  cif0.dWEN = 1'b1;
+  cif0.daddr = 32'h11111111;
+  cif0.dstore = 32'hf0f0f0f0;
+  cif1.dWEN = 1'b1;
+  cif1.daddr = 32'h22222222;
+  cif1.dstore = 32'hf2f2f2f2;
+  @(posedge CLK);
+  @(posedge CLK);
+  while(ramif.ramstate != ACCESS) begin
+    assert(ramif.ramaddr == cif0.daddr & ramif.ramstore == cif0.dstore)
+    else $display("tc 2 error, wb1");
+    @(posedge CLK);
+  end
+  @(posedge CLK);
+  cif0.daddr = 32'h11111115;
+  cif0.dstore = 32'hf1f1f1f1;
+  @(posedge CLK);
+  while(ramif.ramstate != ACCESS) begin
+    assert(ramif.ramaddr == cif0.daddr & ramif.ramstore == cif0.dstore)
+    else $display("tc 2 error, wb2");
+    @(posedge CLK);
+  end
+  @(posedge CLK);
+  cif0.dWEN = 1'b0;
+  cif0.daddr = 32'h00000000;
+  cif0.dstore = 32'h00000000;
+  @(posedge CLK);
+  @(posedge CLK);
+  while(ramif.ramstate != ACCESS) begin
+    assert(ramif.ramaddr == cif1.daddr & ramif.ramstore == cif1.dstore)
+    else $display("tc 2 error, wb3");
+    @(posedge CLK);
+  end
+  @(posedge CLK);
+  cif1.daddr = 32'h22222226;
+  cif0.dstore = 32'hf3f3f3f3;
+  @(posedge CLK);
+  while(ramif.ramstate != ACCESS) begin
+    assert(ramif.ramaddr == cif1.daddr & ramif.ramstore == cif1.dstore)
+    else $display("tc 2 error, wb4");
+    @(posedge CLK);
+  end
+  @(posedge CLK);
+  cif1.dWEN = 1'b0;
+  cif1.daddr = 32'h00000000;
+  cif1.dstore = 32'h00000000;
+  @(posedge CLK);
 
-  dump_memory();
+
+
+
+  //tc3, read data
+  cif0.daddr = 32'h55555555;
+  cif0.dREN = 1'b1;
+  cif0.cctrans = 1;
+  cif0.ccwrite = 0;
+  cif1.ccwrite = 0;
+  @(posedge CLK);
+  @(posedge CLK);
+  //snoop
+  #2;
+  assert(cif1.ccsnoopaddr == cif0.daddr & cif1.ccwait == 1 & cif1.ccinv == cif0.ccwrite)
+    else $display("tc3 snoop error, %h, %d, %d", cif1.ccsnoopaddr, cif1.ccwait, cif1.ccinv);
+  @(posedge CLK);
+  #1;
+  //read 1
+  while(ramif.ramstate != ACCESS) begin
+    assert(ramif.ramREN == 1 & ramif.ramaddr == cif0.daddr & cif1.ccwait == 0)
+      else $display("tc3 ram read 1 error, %d, %h, %d", ramif.ramREN, ramif.ramaddr, cif1.ccwait);
+    @(posedge CLK);
+  end
+  @(posedge CLK);
+  cif0.daddr = 32'h55555559;
+  @(posedge CLK);
+  //read 2
+  while(ramif.ramstate != ACCESS) begin
+    assert(ramif.ramREN == 1 & ramif.ramaddr == cif0.daddr & cif1.ccwait == 0)
+      else $display("tc3 ram read 2 error");
+    @(posedge CLK);
+  end
+  @(posedge CLK);
+
+  //tc4
+  cif0.daddr = 32'h33333333;
+  cif0.dREN = 1'b1;
+  cif0.cctrans = 1;
+  cif0.ccwrite = 0;
+  cif1.ccwrite = 1;
+  @(posedge CLK);
+  @(posedge CLK);
+  //snoop
+  #2;
+  assert(cif1.ccsnoopaddr == cif0.daddr & cif1.ccwait == 1 & cif1.ccinv == cif0.ccwrite)
+    else $display("tc4 snoop error");
+  @(posedge CLK);
+  //read 1
+  while(ramif.ramstate != ACCESS) begin
+    assert(ramif.ramWEN == 1 & ramif.ramaddr == cif0.daddr & cif1.ccwait == 1 & ramif.ramstore == cif0.dstore & cif0.dload == cif1.dstore)
+      else $display("tc4 dirty wb1 error");
+    @(posedge CLK);
+  end
+  @(posedge CLK);
+  cif0.daddr = 32'h33333337;
+  @(posedge CLK);
+  //read 2
+  while(ramif.ramstate != ACCESS) begin
+    assert(ramif.ramWEN == 1 & ramif.ramaddr == cif0.daddr & cif1.ccwait == 1 & ramif.ramstore == cif0.dstore & cif0.dload == cif1.dstore)
+      else $display("tc3 dirty wb2 error");
+    @(posedge CLK);
+  end
+  @(posedge CLK);
+  cif0.daddr = '0;
+  cif0.dREN = 1'b0;
+  cif0.cctrans = 0;
+  cif0.ccwrite = 0;
+  cif1.ccwrite = 0;
+
+  //tc5, ~dREN
+  cif1.cctrans = 1;
+  @(posedge CLK);
+  @(posedge CLK);
+  assert(cif0.ccsnoopaddr == cif1.daddr & cif0.ccwait == 1 & cif0.ccinv == cif1.ccwrite)
+    else $display("tc5 error");
+  @(posedge CLK);
+
+  /*dump_memory();
   end
 
   task automatic dump_memory();
@@ -266,7 +316,7 @@ program test(input logic CLK, output logic nRST, caches_if.caches cif, cpu_ram_i
       $fclose(memfd);
       $display("Finished memory dump.");
     end
-  endtask
-
+  endtask*/
+end
 endprogram
 

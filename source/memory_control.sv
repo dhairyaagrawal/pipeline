@@ -35,8 +35,8 @@ module memory_control (
   always_ff@(posedge CLK, negedge nRST) begin
     if(!nRST) begin
       state <= IDLE;
-      cachesel <= '0;
-      coresel <= '0;
+      cachesel <= '1;
+      coresel <= '1;
     end else begin
       state <= nextstate;
       cachesel <= nextcachesel;
@@ -48,7 +48,7 @@ module memory_control (
   always_comb begin
     nextstate = state;
     case(state)
-      IDLE : if(ccif.dWEN[0] || ccif.dREN[0] || ccif.dWEN[1] || ccif.dREN[1] || ccif.iREN[0] || ccif.iREN[1]) begin
+      IDLE : if(ccif.cctrans[0] || ccif.cctrans[1] || ccif.dWEN[0] || ccif.dWEN[1] || ccif.dREN[0] || ccif.dREN[1] || ccif.iREN[0] || ccif.iREN[1]) begin
                nextstate = ARBITRATE;
              end
       ARBITRATE : if(ccif.dWEN[cachesel]) begin
@@ -106,13 +106,13 @@ module memory_control (
     nextcoresel = coresel;
     case(state)
       IDLE : begin
-             if((ccif.dWEN[0] || ccif.dREN[0]) && (ccif.dWEN[1] || ccif.dREN[1])) begin
+             if(((ccif.dWEN[0] || ccif.dREN[0]) && (ccif.dWEN[1] || ccif.dREN[1])) || (ccif.cctrans == 3)) begin
                nextcachesel = !cachesel;
-             end else if(ccif.dWEN[0] || ccif.dREN[0]) begin
+             end else if(ccif.dWEN[0] || ccif.dREN[0] || ccif.cctrans[0]) begin
                nextcachesel = 1'b0;
-             end else if(ccif.dWEN[1] || ccif.dREN[1]) begin
+             end else if(ccif.dWEN[1] || ccif.dREN[1] || ccif.cctrans[1]) begin
                nextcachesel = 1'b1;
-             end 
+             end
              if(ccif.iREN[0] && ccif.iREN[1]) begin
                nextcoresel = !coresel;
              end else if(ccif.iREN[0]) begin
@@ -138,7 +138,7 @@ module memory_control (
               ccif.ramstore = ccif.dstore[cachesel];
               ccif.ramWEN = 1'b1;
               if(ccif.ramstate == ACCESS) begin
-                ccif.dwait = 1'b0;
+                ccif.dwait[cachesel] = 1'b0;
               end
       end
       WB1 : begin
@@ -146,7 +146,7 @@ module memory_control (
               ccif.ramstore = ccif.dstore[cachesel];
               ccif.ramWEN = 1'b1;
               if(ccif.ramstate == ACCESS) begin
-                ccif.dwait = 1'b0;
+                ccif.dwait[cachesel]= 1'b0;
               end
       end
       SNOOP : begin
@@ -159,7 +159,7 @@ module memory_control (
               ccif.ramREN = 1'b1;
               ccif.dload[cachesel] = ccif.ramload;
               if(ccif.ramstate == ACCESS) begin
-                ccif.dwait = 1'b0;
+                ccif.dwait[cachesel] = 1'b0;
               end
       end
       READ1 : begin
@@ -167,7 +167,7 @@ module memory_control (
               ccif.ramREN = 1'b1;
               ccif.dload[cachesel] = ccif.ramload;
               if(ccif.ramstate == ACCESS) begin
-                ccif.dwait = 1'b0;
+                ccif.dwait[cachesel] = 1'b0;
               end
       end
       DIRTYWB0 : begin
@@ -175,19 +175,21 @@ module memory_control (
                  ccif.ramaddr = ccif.daddr[cachesel];
                  ccif.ramstore = ccif.dstore[cachesel];
                  ccif.ramWEN = 1'b1;
+                 ccif.ccwait[~cachesel] = 1;
                  if(ccif.ramstate == ACCESS) begin
-                   ccif.dwait = 1'b0;
+                   ccif.dwait = '0;
                  end
-      end    
+      end
       DIRTYWB1 : begin
                  ccif.dload[cachesel] = ccif.dstore[!cachesel];
                  ccif.ramaddr = ccif.daddr[cachesel];
                  ccif.ramstore = ccif.dstore[cachesel];
                  ccif.ramWEN = 1'b1;
+                 ccif.ccwait[~cachesel] = 1;
                  if(ccif.ramstate == ACCESS) begin
-                   ccif.dwait = 1'b0;
+                   ccif.dwait = '0;
                  end
-      end  
+      end
     endcase
   end
 
@@ -202,6 +204,7 @@ module memory_control (
   always_comb begin
     ccif.dwait = 1'b1;
     ccif.iwait = 1'b1;
+sim:/memory_control_tb/DUT/state
     if((ccif.dREN | ccif.dWEN) && ccif.ramstate == ACCESS) begin
       ccif.dwait = 1'b0;
     end else if(ccif.iREN && ccif.ramstate == ACCESS) begin
