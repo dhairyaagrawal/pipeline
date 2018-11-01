@@ -130,7 +130,7 @@ module memory_control (
               ccif.ramREN = ccif.iREN[coresel];
               ccif.iload[coresel] = ccif.ramload;
               if(ccif.ramstate == ACCESS) begin
-                ccif.iwait = 1'b0;
+                ccif.iwait[coresel] = 1'b0;
               end
       end
       WB0 : begin
