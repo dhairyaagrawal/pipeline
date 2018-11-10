@@ -47,44 +47,58 @@ module memory_control (
   //NEXT STATE LOGIC
   always_comb begin
     nextstate = state;
+    ccif.ccwait = '0;
     case(state)
       IDLE : if(ccif.cctrans[0] || ccif.cctrans[1] || ccif.dWEN[0] || ccif.dWEN[1] || ccif.dREN[0] || ccif.dREN[1] || ccif.iREN[0] || ccif.iREN[1]) begin
                nextstate = ARBITRATE;
              end
       ARBITRATE : if(ccif.dWEN[cachesel]) begin
                     nextstate = WB0;
+                    ccif.ccwait[!cachesel] = '1;
                   end else if(ccif.cctrans[cachesel]) begin
                     nextstate = SNOOP;
+                    ccif.ccwait[!cachesel] = '1;
                   end else if(ccif.iREN[coresel]) begin
                     nextstate = FETCH;
+                    ccif.ccwait = '1;
                   end
       WB0 : if(ccif.ramstate == ACCESS) begin
                 nextstate = WB1;
+                ccif.ccwait[!cachesel] = '1;
             end
       WB1 : if(ccif.ramstate == ACCESS) begin
                 nextstate = IDLE;
+                ccif.ccwait[!cachesel] = '1;
             end
       FETCH : if(ccif.ramstate == ACCESS) begin
                 nextstate = IDLE;
+                ccif.ccwait = '1;
               end
-      SNOOP : if(!ccif.dREN[cachesel]) begin
+      SNOOP : begin
+              ccif.ccwait[!cachesel] = '1;
+              if(!ccif.dREN[cachesel] && ccif.cctrans[!cachesel]) begin
                 nextstate = IDLE;
-              end else if(ccif.ccwrite[!cachesel]) begin
+              end else if(ccif.ccwrite[!cachesel] && ccif.cctrans[!cachesel]) begin
                 nextstate = DIRTYWB0;
-              end else if(!ccif.ccwrite[!cachesel]) begin
+              end else if(!ccif.ccwrite[!cachesel] && ccif.cctrans[!cachesel]) begin
                 nextstate = READ0;
               end
+      end
       READ0 : if(ccif.ramstate == ACCESS) begin
                 nextstate = READ1;
+                ccif.ccwait[!cachesel] = '1;
               end
       READ1 : if(ccif.ramstate == ACCESS) begin
                 nextstate = IDLE;
+                ccif.ccwait[!cachesel] = '1;
               end
       DIRTYWB0 : if(ccif.ramstate == ACCESS) begin
                    nextstate = DIRTYWB1;
+                   ccif.ccwait[!cachesel] = '1;
                  end
       DIRTYWB1 : if(ccif.ramstate == ACCESS) begin
                    nextstate = IDLE;
+                   ccif.ccwait[!cachesel] = '1;
                  end
     endcase
   end
@@ -99,7 +113,7 @@ module memory_control (
     ccif.ramaddr = '0;
     ccif.ramWEN = 1'b0;
     ccif.ramREN = 1'b0;
-    ccif.ccwait = '0;
+    //ccif.ccwait = '0;
     ccif.ccinv = '0;
     ccif.ccsnoopaddr = '0;
     nextcachesel = cachesel;
@@ -151,7 +165,7 @@ module memory_control (
       end
       SNOOP : begin
               ccif.ccsnoopaddr[!cachesel] = ccif.daddr[cachesel];
-              ccif.ccwait[!cachesel] = 1'b1;
+              //ccif.ccwait[!cachesel] = 1'b1;
               ccif.ccinv[!cachesel] = ccif.ccwrite[cachesel];
       end
       READ0 : begin
@@ -173,9 +187,9 @@ module memory_control (
       DIRTYWB0 : begin
                  ccif.dload[cachesel] = ccif.dstore[!cachesel];
                  ccif.ramaddr = ccif.daddr[cachesel];
-                 ccif.ramstore = ccif.dstore[cachesel];
+                 ccif.ramstore = ccif.dstore[!cachesel];
                  ccif.ramWEN = 1'b1;
-                 ccif.ccwait[~cachesel] = 1;
+                 //ccif.ccwait[~cachesel] = 1;
                  if(ccif.ramstate == ACCESS) begin
                    ccif.dwait = '0;
                  end
@@ -183,9 +197,9 @@ module memory_control (
       DIRTYWB1 : begin
                  ccif.dload[cachesel] = ccif.dstore[!cachesel];
                  ccif.ramaddr = ccif.daddr[cachesel];
-                 ccif.ramstore = ccif.dstore[cachesel];
+                 ccif.ramstore = ccif.dstore[!cachesel];
                  ccif.ramWEN = 1'b1;
-                 ccif.ccwait[~cachesel] = 1;
+                 //ccif.ccwait[~cachesel] = 1;
                  if(ccif.ramstate == ACCESS) begin
                    ccif.dwait = '0;
                  end

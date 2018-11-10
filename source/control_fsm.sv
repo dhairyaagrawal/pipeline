@@ -9,7 +9,7 @@ module control_fsm (
   control_fsm_if.cf cfif
 );
 
-  typedef enum logic [3:0] {IDLE, WRAM0, WRAM1, RRAM0, RRAM1, CHK0, FWRAM0, FWRAM1, CHK1, FWRAM2, FWRAM3, INCR, STOREHIT, WRAMHIT, FLUSH} stateType;
+  typedef enum logic [4:0] {IDLE, WRAM0, WRAM1, RRAM0, RRAM1, CHK0, FWRAM0, FWRAM1, CHK1, FWRAM2, FWRAM3, INCR, CHKFLUSH, FLUSH, SNOOP, DIRTYWB0, DIRTYWB1, WAIT0, WAIT1, DELAY0, DELAY1} stateType;
   stateType state;
   stateType nextstate;
 
@@ -42,26 +42,57 @@ module control_fsm (
   always_comb begin
     nextstate = state;
     case(state)
-      IDLE : if(cfif.halt) begin
+      IDLE : if(cfif.ccwait && cfif.ccsnoopaddr != '0) begin
+               nextstate = SNOOP;
+             end else if(cfif.halt) begin
                nextstate = CHK0;
+             end else if(!cfif.miss && cfif.cctrans) begin
+               nextstate = WAIT0;
              end else if(cfif.miss && dirty && access) begin
                nextstate = WRAM0;
              end else if(cfif.miss && !dirty && access) begin
                nextstate = RRAM0;
              end
-      WRAM0 : if(!cfif.dwait) begin
+      WAIT0 : if(!cfif.ccwait) begin
+                nextstate = WAIT1;
+              end
+      WAIT1 : if(!cfif.ccwait) begin
+                nextstate = DELAY0;
+              end
+      DELAY0 : nextstate = DELAY1;
+      DELAY1 : nextstate = IDLE;
+      SNOOP : if(cfif.flush_latch) begin
+                nextstate = FLUSH;
+              end else if(cfif.ccwrite) begin
+                nextstate = DIRTYWB0;
+              end else if(~cfif.ccwrite) begin
+                nextstate = IDLE;
+              end
+      DIRTYWB0 : if(!cfif.dwait) begin
+                   nextstate = DIRTYWB1;
+                 end
+      DIRTYWB1 : if(!cfif.dwait) begin
+                   nextstate = IDLE;
+                 end
+      WRAM0 : if(cfif.ccwait && cfif.ccsnoopaddr != '0) begin
+               nextstate = SNOOP;
+             end else if(!cfif.dwait) begin
                 nextstate = WRAM1;
               end 
       WRAM1 : if(!cfif.dwait) begin
                 nextstate = RRAM0;
               end
-      RRAM0 : if(!cfif.dwait) begin
+      RRAM0 : if(cfif.ccwait && cfif.ccsnoopaddr != '0) begin
+               nextstate = SNOOP;
+             end else if(!cfif.dwait) begin
                 nextstate = RRAM1;
               end
       RRAM1 : if(!cfif.dwait) begin
                 nextstate = IDLE;
               end
-      CHK0 : if(cfif.dirty0) begin
+      CHK0 : if(cfif.ccwait && cfif.ccsnoopaddr != '0) begin
+               nextstate = SNOOP;
+             end else if(cfif.dirty0) begin
                nextstate = FWRAM0;
              end else if(!cfif.dirty0) begin
                nextstate = CHK1;
@@ -72,7 +103,9 @@ module control_fsm (
       FWRAM1 : if(!cfif.dwait) begin
                  nextstate = CHK1;
                end 
-      CHK1 : if(cfif.dirty1) begin
+      CHK1 : if(cfif.ccwait && cfif.ccsnoopaddr != '0) begin
+               nextstate = SNOOP;
+             end else if(cfif.dirty1) begin
                nextstate = FWRAM2;
              end else if(!cfif.dirty1) begin
                nextstate = INCR;
@@ -83,16 +116,15 @@ module control_fsm (
       FWRAM3 : if(!cfif.dwait) begin
                  nextstate = INCR;
                end 
-      INCR : nextstate = STOREHIT;
-      STOREHIT : if(ct_reg == 8) begin
-                   nextstate = WRAMHIT;
+      INCR : nextstate = CHKFLUSH;
+      CHKFLUSH : if(ct_reg == 8) begin
+                   nextstate = FLUSH;
                  end else begin
                    nextstate = CHK0;
                  end
-      WRAMHIT : if(!cfif.dwait) begin
-                  nextstate = FLUSH;
-                end
-      FLUSH : nextstate = state;
+      FLUSH : if(cfif.ccwait && cfif.ccsnoopaddr != '0) begin
+                nextstate = SNOOP;
+              end
     endcase
   end
 
@@ -104,13 +136,36 @@ module control_fsm (
     cfif.daddr = '0;
     nextct = ct_reg;
     cfif.store = '0;
-    cfif.storesel = 1'b0;
     cfif.flushing = 1'b0;
     cfif.control_offset = 1'b0;
     cfif.flushed = 1'b0;
     cfif.tagWEN = 1'b0;
+
+    cfif.snoop = 1'b0;
+    cfif.mytrans = 1'b0;
+    cfif.snoopaddr = '0;
+    cfif.hit = 1'b0;
     case(state)
-      IDLE : cfif.flushed = 1'b0;
+      IDLE : if(!cfif.cctrans) begin
+               cfif.hit = !cfif.miss;
+             end
+      WAIT0 : cfif.hit = 1'b0;
+      WAIT1 : cfif.hit = 1'b0;
+      DELAY0 : cfif.hit = 1'b0;
+      DELAY1 : cfif.mytrans = 1'b1;
+      SNOOP : begin
+              cfif.snoop = 1'b1;
+              cfif.snoopaddr = cfif.ccsnoopaddr;
+      end
+      DIRTYWB0 : begin
+                 cfif.snoop = 1'b1;
+                 cfif.snoopaddr = cfif.ccsnoopaddr;
+      end
+      DIRTYWB1 : begin
+                 cfif.snoop = 1'b1;
+                 cfif.snoopaddr = cfif.ccsnoopaddr + 4;
+                 cfif.mytrans = 1'b1;
+      end
       WRAM0 : begin 
               cfif.dWEN = 1;
               cfif.daddr = {tag, cfif.dmemaddr[5:3], 3'b000};
@@ -132,39 +187,47 @@ module control_fsm (
               cfif.control_offset = 1;
               cfif.tagWEN = 1'b1;
       end
-      CHK0 : cfif.flushing = 1'b1;
+      CHK0 : begin
+               cfif.flushing = 1'b1;
+               cfif.control_offset = 0;
+      end
       FWRAM0 : begin
                cfif.flushing = 1'b1;
                cfif.dWEN = 1;
                cfif.daddr = {cfif.tag0, ct_reg[2:0], 3'b000};
                cfif.store = cfif.data0[0];
+               cfif.control_offset = 0;
       end
       FWRAM1 : begin
                cfif.flushing = 1'b1;
                cfif.dWEN = 1;
                cfif.daddr = {cfif.tag0, ct_reg[2:0], 3'b100};
                cfif.store = cfif.data0[1];
+               cfif.control_offset = 0;
       end
-      CHK1 : cfif.flushing = 1'b1;
+      CHK1 : begin
+               cfif.flushing = 1'b1;
+               cfif.control_offset = 1;
+      end
       FWRAM2 : begin
                cfif.flushing = 1'b1;
                cfif.dWEN = 1;
                cfif.daddr = {cfif.tag1, ct_reg[2:0], 3'b000};
                cfif.store = cfif.data1[0];
+               cfif.control_offset = 1;
       end
       FWRAM3 : begin
                cfif.flushing = 1'b1;
                cfif.dWEN = 1;
                cfif.daddr = {cfif.tag1, ct_reg[2:0], 3'b100};
                cfif.store = cfif.data1[1];
+               cfif.control_offset = 1;
       end
-      INCR : nextct = ct_reg + 1;
-      STOREHIT : cfif.flushing = 1'b1;
-      WRAMHIT : begin 
-                cfif.dWEN = 1;
-                cfif.daddr = 32'h00003100;
-                cfif.storesel = 1'b1;
+      INCR : begin
+		nextct = ct_reg + 1;
+		cfif.flushing = 1'b1;
       end
+      CHKFLUSH : cfif.flushing = 1'b1;
       FLUSH : cfif.flushed = 1'b1;
     endcase
   end

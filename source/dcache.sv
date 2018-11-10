@@ -27,17 +27,18 @@ module dcache (
   //declare d-cache & other regs
   dcache_frame [7:0] set0, set1;
   logic [7:0] lru_reg;
-  logic [31:0] hitct;
-  logic last_dREN;
+  logic flush_latch;
 
   //easier access to signals
   logic [25:0] tagbits;
   logic offset;
   logic [2:0] index_in;
+  word_t addr_in;
 
-  assign tagbits = dpif.dmemaddr[31:6];
-  assign offset = dpif.dmemaddr[2];
-  assign index_in = (cfif.flushing == 1) ? cfif.ct : dpif.dmemaddr[5:3]; //INDEX MUX
+  assign addr_in = (cfif.snoop) ? cfif.snoopaddr : dpif.dmemaddr;
+  assign tagbits = addr_in[31:6];
+  assign offset = addr_in[2];
+  assign index_in = (cfif.flushing == 1) ? cfif.ct : addr_in[5:3]; //INDEX MUX
 
   //ACCESS LOGIC
   assign alif.tagbits = tagbits;
@@ -45,15 +46,21 @@ module dcache (
   assign alif.dmemREN = dpif.dmemREN;
   assign alif.dmemWEN = dpif.dmemWEN;
   assign alif.valid0 = set0[index_in].valid;
+  assign alif.dirty0 = set0[index_in].dirty;
   assign alif.tag0 = set0[index_in].tag;
   assign alif.data0 = set0[index_in].data;
   assign alif.valid1 = set1[index_in].valid;
+  assign alif.dirty1 = set1[index_in].dirty;
   assign alif.tag1 = set1[index_in].tag;
   assign alif.data1 = set1[index_in].data;
   assign alif.halt = dpif.halt;
+  assign alif.ccinv = cif.ccinv;
+  assign alif.snoop = cfif.snoop;
+  assign alif.mytrans = cfif.mytrans;
 
+  assign cif.ccwrite = alif.ccwrite;
+  assign cif.cctrans = alif.cctrans;
   assign dpif.dmemload = alif.data_out;
-  assign dpif.dhit = ~alif.miss;
 
   //DCACHE
   integer i;
@@ -70,9 +77,14 @@ module dcache (
         set1[i].valid <= 1'b0;
         lru_reg[i] <= 1'b0;
       end
-    end else if(cfif.flushing) begin
-      set0[index_in].valid <= 1'b0;
-      set1[index_in].valid <= 1'b0;
+    end else if(alif.WENcache && alif.snoop) begin
+      if(alif.setsel) begin
+        set1[index_in].dirty <= alif.newValid;
+	set1[index_in].valid <= alif.newDirty;
+      end else if(~alif.setsel) begin
+        set0[index_in].valid <= alif.newValid;
+        set0[index_in].dirty <= alif.newDirty;
+      end
     end else if(alif.WENcache) begin
       if(alif.setsel) begin
         set1[index_in].data[offset] <= dpif.dmemstore;
@@ -83,7 +95,7 @@ module dcache (
         set0[index_in].dirty <= 1'b1;
         lru_reg[index_in] <= ~alif.setsel;
       end
-    end else if(~cif.dwait) begin
+    end else if(~cif.dwait && cif.dREN) begin
       if(lru_reg[index_in] == 1'b1) begin
         set1[index_in].data[cfif.control_offset] <= cif.dload;
         set1[index_in].dirty <= 1'b0;
@@ -99,7 +111,13 @@ module dcache (
           set0[index_in].valid <= 1'b1;
         end
       end
-    end else if(~alif.miss) begin
+    end else if(~cif.dwait && cif.dWEN) begin
+      if(lru_reg[index_in] == 1'b1) begin
+  	set1[index_in].dirty <= 1'b0;
+      end else begin
+	set0[index_in].dirty <= 1'b0;
+      end
+    end else if(~alif.miss && ~alif.snoop) begin
       lru_reg[index_in] <= ~alif.setsel;
     end
   end
@@ -118,22 +136,28 @@ module dcache (
   assign cfif.dmemWEN = dpif.dmemWEN;
   assign cfif.halt = dpif.halt;
   assign cfif.miss = alif.miss;
+  assign cfif.flush_latch = 1'b0;
+  assign cfif.ccwait = cif.ccwait;
+  assign cfif.ccwrite = alif.ccwrite;
+  assign cfif.cctrans = alif.cctrans;
+  assign cfif.ccsnoopaddr = cif.ccsnoopaddr;
 
+  assign dpif.dhit = cfif.hit;
   assign dpif.flushed = cfif.flushed;
   assign cif.dREN = cfif.dREN;
   assign cif.dWEN = cfif.dWEN;
   assign cif.daddr = cfif.daddr;
-  assign cif.dstore = (cfif.storesel == 1) ? hitct : cfif.store; //STORE MUX
+  assign cif.dstore = (cfif.snoop) ? alif.data_out : cfif.store; //STORE MUX
 
-  //HIT COUNTER
+  //FLUSH LATCH
   always_ff@(posedge CLK, negedge nRST) begin
     if(!nRST) begin
-      hitct <= '0;
-      last_dREN <= 1'b0;
+      flush_latch <= 1'b0;
     end else begin
-      last_dREN <= cfif.dREN;
-      if(~last_dREN && ~alif.miss) begin
-        hitct <= hitct + 1;
+      if(cfif.flushing) begin
+        flush_latch <= 1;
+      end else begin
+	flush_latch <= flush_latch;
       end
     end
   end
