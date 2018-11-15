@@ -71,7 +71,7 @@ module datapath (
 
   always_ff@(posedge CLK, negedge nRST) begin
     if(!nRST) begin
-      PC <= '0;
+      PC <= PC_INIT;
     end else begin
       if(huif.stall_PC) begin
         PC <= PC;

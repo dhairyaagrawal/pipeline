@@ -80,7 +80,7 @@ module dcache (
     end else if(alif.WENcache && alif.snoop) begin
       if(alif.setsel) begin
         set1[index_in].dirty <= alif.newValid;
-	set1[index_in].valid <= alif.newDirty;
+        set1[index_in].valid <= alif.newDirty;
       end else if(~alif.setsel) begin
         set0[index_in].valid <= alif.newValid;
         set0[index_in].dirty <= alif.newDirty;
@@ -98,24 +98,38 @@ module dcache (
     end else if(~cif.dwait && cif.dREN) begin
       if(lru_reg[index_in] == 1'b1) begin
         set1[index_in].data[cfif.control_offset] <= cif.dload;
-        set1[index_in].dirty <= 1'b0;
         if(cfif.tagWEN) begin
           set1[index_in].tag <= tagbits;
           set1[index_in].valid <= 1'b1;
+          if(alif.ccwrite) begin
+            set1[index_in].dirty <= 1'b1;
+          end else begin
+            set1[index_in].dirty <= 1'b0;
+          end
         end
       end else if(lru_reg[index_in] == 1'b0) begin
         set0[index_in].data[cfif.control_offset] <= cif.dload;
-        set0[index_in].dirty <= 1'b0;
         if(cfif.tagWEN) begin
           set0[index_in].tag <= tagbits;
           set0[index_in].valid <= 1'b1;
+          if(alif.ccwrite) begin
+            set0[index_in].dirty <= 1'b1;
+          end else begin
+            set0[index_in].dirty <= 1'b0;
+          end
         end
+      end
+    end else if(~cif.dwait && cif.dWEN && cfif.flushing) begin
+      if(cfif.control_offset == 1'b1) begin
+        set1[index_in].dirty <= 1'b0;
+      end else begin
+        set0[index_in].dirty <= 1'b0;
       end
     end else if(~cif.dwait && cif.dWEN) begin
       if(lru_reg[index_in] == 1'b1) begin
-  	set1[index_in].dirty <= 1'b0;
+        set1[index_in].dirty <= 1'b0;
       end else begin
-	set0[index_in].dirty <= 1'b0;
+        set0[index_in].dirty <= 1'b0;
       end
     end else if(~alif.miss && ~alif.snoop) begin
       lru_reg[index_in] <= ~alif.setsel;
@@ -157,7 +171,7 @@ module dcache (
       if(cfif.flushing) begin
         flush_latch <= 1;
       end else begin
-	flush_latch <= flush_latch;
+        flush_latch <= flush_latch;
       end
     end
   end

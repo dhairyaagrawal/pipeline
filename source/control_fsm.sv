@@ -53,10 +53,14 @@ module control_fsm (
              end else if(cfif.miss && !dirty && access) begin
                nextstate = RRAM0;
              end
-      WAIT0 : if(!cfif.ccwait) begin
+      WAIT0 : if(cfif.ccwait && cfif.ccsnoopaddr != '0) begin
+                nextstate = SNOOP;
+              end else if(!cfif.ccwait) begin
                 nextstate = WAIT1;
               end
-      WAIT1 : if(!cfif.ccwait) begin
+      WAIT1 : if(cfif.ccwait && cfif.ccsnoopaddr != '0) begin
+                nextstate = SNOOP;
+              end else if(!cfif.ccwait) begin
                 nextstate = DELAY0;
               end
       DELAY0 : nextstate = DELAY1;
@@ -78,7 +82,7 @@ module control_fsm (
                nextstate = SNOOP;
              end else if(!cfif.dwait) begin
                 nextstate = WRAM1;
-              end 
+              end
       WRAM1 : if(!cfif.dwait) begin
                 nextstate = RRAM0;
               end
@@ -99,23 +103,23 @@ module control_fsm (
              end
       FWRAM0 : if(!cfif.dwait) begin
                  nextstate = FWRAM1;
-               end 
+               end
       FWRAM1 : if(!cfif.dwait) begin
                  nextstate = CHK1;
-               end 
+               end
       CHK1 : if(cfif.ccwait && cfif.ccsnoopaddr != '0) begin
                nextstate = SNOOP;
              end else if(cfif.dirty1) begin
                nextstate = FWRAM2;
              end else if(!cfif.dirty1) begin
                nextstate = INCR;
-             end 
+             end
       FWRAM2 : if(!cfif.dwait) begin
                  nextstate = FWRAM3;
                end
       FWRAM3 : if(!cfif.dwait) begin
                  nextstate = INCR;
-               end 
+               end
       INCR : nextstate = CHKFLUSH;
       CHKFLUSH : if(ct_reg == 8) begin
                    nextstate = FLUSH;
@@ -166,7 +170,7 @@ module control_fsm (
                  cfif.snoopaddr = cfif.ccsnoopaddr + 4;
                  cfif.mytrans = 1'b1;
       end
-      WRAM0 : begin 
+      WRAM0 : begin
               cfif.dWEN = 1;
               cfif.daddr = {tag, cfif.dmemaddr[5:3], 3'b000};
               cfif.store = data[0];
