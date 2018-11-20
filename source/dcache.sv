@@ -80,7 +80,7 @@ module dcache (
     end else if(alif.WENcache && alif.snoop) begin
       if(alif.setsel) begin
         set1[index_in].dirty <= alif.newValid;
-	set1[index_in].valid <= alif.newDirty;
+        set1[index_in].valid <= alif.newDirty;
       end else if(~alif.setsel) begin
         set0[index_in].valid <= alif.newValid;
         set0[index_in].dirty <= alif.newDirty;
@@ -111,11 +111,17 @@ module dcache (
           set0[index_in].valid <= 1'b1;
         end
       end
+    end else if(~cif.dwait && cif.dWEN && cif.flushing) begin
+      if(cfif.control_offset == 1'b1) begin
+        set1[index_in].dirty <= 1'b0;
+      end else begin
+        set0[index_in].dirty <= 1'b0;
+      end
     end else if(~cif.dwait && cif.dWEN) begin
       if(lru_reg[index_in] == 1'b1) begin
-  	set1[index_in].dirty <= 1'b0;
+        set1[index_in].dirty <= 1'b0;
       end else begin
-	set0[index_in].dirty <= 1'b0;
+        set0[index_in].dirty <= 1'b0;
       end
     end else if(~alif.miss && ~alif.snoop) begin
       lru_reg[index_in] <= ~alif.setsel;
@@ -157,7 +163,7 @@ module dcache (
       if(cfif.flushing) begin
         flush_latch <= 1;
       end else begin
-	flush_latch <= flush_latch;
+        flush_latch <= flush_latch;
       end
     end
   end
