@@ -160,15 +160,18 @@ module control_fsm (
       SNOOP : begin
               cfif.snoop = 1'b1;
               cfif.snoopaddr = cfif.ccsnoopaddr;
+              cfif.daddr = cfif.ccsnoopaddr;
       end
       DIRTYWB0 : begin
                  cfif.snoop = 1'b1;
                  cfif.snoopaddr = cfif.ccsnoopaddr;
+                 cfif.daddr = cfif.ccsnoopaddr;
       end
       DIRTYWB1 : begin
                  cfif.snoop = 1'b1;
                  cfif.snoopaddr = cfif.ccsnoopaddr + 4;
                  cfif.mytrans = 1'b1;
+                 cfif.daddr = cfif.ccsnoopaddr + 4;
       end
       WRAM0 : begin
               cfif.dWEN = 1;
