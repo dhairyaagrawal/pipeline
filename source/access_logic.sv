@@ -100,6 +100,8 @@ module access_logic (
         if(alif.mytrans) begin
           alif.WENcache = 1'b1;
         end
+      end else begin
+        alif.ccwrite = 1'b1;
       end
     end
   end

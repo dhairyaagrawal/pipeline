@@ -55,7 +55,7 @@ module memory_control (
       ARBITRATE : if(ccif.dWEN[cachesel]) begin
                     nextstate = WB0;
                     ccif.ccwait[!cachesel] = '1;
-                  end else if(ccif.cctrans[cachesel]) begin
+                  end else if(ccif.cctrans[cachesel] || ccif.dREN[cachesel] ) begin
                     nextstate = SNOOP;
                     ccif.ccwait[!cachesel] = '1;
                   end else if(ccif.iREN[coresel]) begin
@@ -138,6 +138,10 @@ module memory_control (
       ARBITRATE : begin
                   nextcachesel = cachesel;
                   nextcoresel = coresel;
+                  if(ccif.cctrans[cachesel] || ccif.dREN[cachesel] ) begin
+                    ccif.ccsnoopaddr[!cachesel] = ccif.daddr[cachesel];
+                    ccif.ccinv[!cachesel] = ccif.ccwrite[cachesel];
+                  end
       end
       FETCH : begin
               ccif.ramaddr = ccif.iaddr[coresel];

@@ -53,10 +53,14 @@ module control_fsm (
              end else if(cfif.miss && !dirty && access) begin
                nextstate = RRAM0;
              end
-      WAIT0 : if(!cfif.ccwait) begin
+      WAIT0 : if(cfif.ccwait && cfif.ccsnoopaddr != '0) begin
+                nextstate = SNOOP;
+              end else if(!cfif.ccwait) begin
                 nextstate = WAIT1;
               end
-      WAIT1 : if(!cfif.ccwait) begin
+      WAIT1 : if(cfif.ccwait && cfif.ccsnoopaddr != '0) begin
+                nextstate = SNOOP;
+              end else if(!cfif.ccwait) begin
                 nextstate = DELAY0;
               end
       DELAY0 : nextstate = DELAY1;
