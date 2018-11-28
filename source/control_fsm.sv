@@ -153,10 +153,13 @@ module control_fsm (
       IDLE : if(!cfif.cctrans) begin
                cfif.hit = !cfif.miss;
              end
-      WAIT0 : cfif.hit = 1'b0;
-      WAIT1 : cfif.hit = 1'b0;
-      DELAY0 : cfif.hit = 1'b0;
-      DELAY1 : cfif.mytrans = 1'b1;
+      WAIT0 : cfif.daddr = cfif.dmemaddr;
+      WAIT1 : cfif.daddr = cfif.dmemaddr;
+      DELAY0 : cfif.daddr = cfif.dmemaddr;
+      DELAY1 :  begin
+                cfif.daddr = cfif.dmemaddr;
+                cfif.mytrans = 1'b1;
+      end
       SNOOP : begin
               cfif.snoop = 1'b1;
               cfif.snoopaddr = cfif.ccsnoopaddr;
@@ -169,9 +172,9 @@ module control_fsm (
       end
       DIRTYWB1 : begin
                  cfif.snoop = 1'b1;
-                 cfif.snoopaddr = cfif.ccsnoopaddr + 4;
+                 cfif.snoopaddr = cfif.ccsnoopaddr;
                  cfif.mytrans = 1'b1;
-                 cfif.daddr = cfif.ccsnoopaddr + 4;
+                 cfif.daddr = cfif.ccsnoopaddr;
       end
       WRAM0 : begin
               cfif.dWEN = 1;
