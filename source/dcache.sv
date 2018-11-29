@@ -29,6 +29,10 @@ module dcache (
   logic [7:0] lru_reg;
   logic flush_latch;
 
+  //ll & sc signals
+  logic [32:0] link_reg;
+  logic sc_succeed;
+
   //easier access to signals
   logic [25:0] tagbits;
   logic offset;
@@ -60,7 +64,7 @@ module dcache (
 
   assign cif.ccwrite = alif.ccwrite;
   assign cif.cctrans = alif.cctrans;
-  assign dpif.dmemload = alif.data_out;
+  assign dpif.dmemload = (dpif.dmemWEN & dpif.datomic) ? {31'h0,sc_succeed} : alif.data_out;
 
   //DCACHE
   integer i;
@@ -77,7 +81,7 @@ module dcache (
         set1[i].valid <= 1'b0;
         lru_reg[i] <= 1'b0;
       end
-    end else if(alif.WENcache && alif.snoop) begin
+    end else if(alif.WENcache && cfif.snoop) begin
       if(alif.setsel) begin
         set1[index_in].dirty <= alif.newValid;
         set1[index_in].valid <= alif.newDirty;
@@ -85,7 +89,7 @@ module dcache (
         set0[index_in].valid <= alif.newValid;
         set0[index_in].dirty <= alif.newDirty;
       end
-    end else if(alif.WENcache) begin
+    end else if((alif.WENcache && !dpif.datomic) || (alif.WENcache && dpif.datomic && sc_succeed)) begin
       if(alif.setsel) begin
         set1[index_in].data[offset] <= dpif.dmemstore;
         set1[index_in].dirty <= 1'b1;
@@ -136,6 +140,33 @@ module dcache (
     end
   end
 
+  //ll functionality
+  always_ff @(posedge CLK, negedge nRST) begin
+    if(~nRST) begin
+      link_reg <= '0;
+    end else begin
+      if(dpif.dmemREN & dpif.datomic) begin
+        link_reg[31:0] <= dpif.dmemaddr;
+        link_reg[32] <= 1;
+      end else begin //set valid bit to 0
+          if(cfif.snoop && alif.WENcache && link_reg[31:0] == cif.ccsnoopaddr) begin
+            link_reg[32] <= 0;
+          end
+      end
+    end
+  end
+
+  //sc functionality
+  always_comb begin
+    sc_succeed = 0;
+    if(dpif.dmemWEN & dpif.datomic) begin
+      if(link_reg[31:0] == dpif.dmemaddr & link_reg[32]) begin
+        sc_succeed = 1;
+      end
+    end
+  end
+
+
   //CONTROL FSM
   assign cfif.LRU = lru_reg[index_in];
   assign cfif.dirty0 = set0[index_in].dirty;
@@ -155,6 +186,7 @@ module dcache (
   assign cfif.ccwrite = alif.ccwrite;
   assign cfif.cctrans = alif.cctrans;
   assign cfif.ccsnoopaddr = cif.ccsnoopaddr;
+  assign cfif.datomic = dpif.datomic;
 
   assign dpif.dhit = cfif.hit;
   assign dpif.flushed = cfif.flushed;

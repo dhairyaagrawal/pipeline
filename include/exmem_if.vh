@@ -20,21 +20,22 @@ interface exmem_if;
   logic [3:0] WBctrl_in, WBctrl_out;
   logic [4:0] MEMctrl_in, MEMctrl_out;
   logic ihit;
-  logic dhit;
+  logic dhit, datomic_in, datomic_out;
+
 
   // exmem ports
   modport em (
     input   store_in, aluout_in, baddr_in, jaddr_in, reg31_in, npc_in, dest_in, dmemload_in,
-      imm_in, zero_in, WBctrl_in, MEMctrl_in, ihit, dhit, instr_in,
+      imm_in, zero_in, WBctrl_in, MEMctrl_in, ihit, dhit, instr_in, datomic_in,
     output  store_out, aluout_out, baddr_out, jaddr_out, reg31_out, npc_out,
-      dest_out, imm_out, zero_out, WBctrl_out, MEMctrl_out, instr_out, dmemload_out
+      dest_out, imm_out, zero_out, WBctrl_out, MEMctrl_out, instr_out, dmemload_out, datomic_out
   );
   // exmem tb
   modport tb (
     output   store_in, aluout_in, baddr_in, jaddr_in, reg31_in, npc_in, dest_in, dmemload_in,
-      imm_in, zero_in, WBctrl_in, MEMctrl_in, ihit, dhit, instr_in,
+      imm_in, zero_in, WBctrl_in, MEMctrl_in, ihit, dhit, instr_in, datomic_in,
     input  store_out, aluout_out, baddr_out, jaddr_out, reg31_out, npc_out, dmemload_out,
-      dest_out, imm_out, zero_out, WBctrl_out, MEMctrl_out, instr_out
+      dest_out, imm_out, zero_out, WBctrl_out, MEMctrl_out, instr_out, datomic_out
   );
 endinterface
 

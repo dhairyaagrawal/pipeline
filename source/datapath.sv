@@ -125,6 +125,7 @@ module datapath (
   assign rfif.WEN = memwbif.WBctrl_out[1];
   assign rfif.wsel = memwbif.dest_out;
 
+  assign idexif.datomic_in = cuif.datomic;
   assign idexif.WBctrl_in = {cuif.MemtoReg, cuif.RegWEN, cuif.halt};
   assign idexif.MEMctrl_in = {cuif.tmpPC, cuif.branch, cuif.dmemREN, cuif.dmemWEN};
   assign idexif.EXctrl_in = {cuif.lui, cuif.RegDest, cuif.ALUSrc, cuif.ALUOP, cuif.ExtOp};
@@ -157,6 +158,7 @@ module datapath (
     end
   end
 
+  assign exmemif.datomic_in = idexif.datomic_out;
   assign exmemif.dmemload_in = dpif.dmemload;
   assign exmemif.WBctrl_in = idexif.WBctrl_out;
   assign exmemif.MEMctrl_in = idexif.MEMctrl_out;
@@ -189,6 +191,7 @@ module datapath (
 
   //MEM Stage
   assign memwbif.instr_in = exmemif.instr_out;
+  assign dpif.datomic = exmemif.datomic_out;
   assign dpif.dmemstore = exmemif.store_out;
   assign dpif.dmemaddr = exmemif.aluout_out;
   assign dpif.dmemREN = exmemif.MEMctrl_out[1];

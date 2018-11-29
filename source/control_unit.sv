@@ -8,11 +8,17 @@ module control_unit (
 );
 
   always_comb begin //tried sensitivity list
+    //set datomic
+    cuif.datomic = 1'b0;
+    if(cuif.opcode == LL || cuif.opcode == SC) begin
+      cuif.datomic = 1'b1;
+    end
+
     //set LUI
     cuif.lui = 1'b0;
     if(cuif.opcode == LUI) begin
       cuif.lui = 1'b1;
-    end    
+    end
 
     //set tmpPC
     cuif.tmpPC = 2'b00;
@@ -58,7 +64,7 @@ module control_unit (
 
     //set MemtoReg
     cuif.MemtoReg = 0;
-    if(cuif.opcode == LW) begin
+    if(cuif.opcode == LW || cuif.opcode == LL || cuif.opcode == SC) begin
       cuif.MemtoReg = 1;
     end else if(cuif.opcode == LUI) begin
       cuif.MemtoReg = 2;
@@ -74,13 +80,13 @@ module control_unit (
 
     //set dmemREN
     cuif.dmemREN = 0;
-    if(cuif.opcode == LW) begin
+    if(cuif.opcode == LW || cuif.opcode == LL) begin
       cuif.dmemREN = 1;
     end
 
     //set dmemWEN
     cuif.dmemWEN = 0;
-    if(cuif.opcode == SW) begin
+    if(cuif.opcode == SW || cuif.opcode == SC) begin
       cuif.dmemWEN = 1;
     end
 
@@ -104,7 +110,7 @@ module control_unit (
       endcase
     end else if(cuif.opcode == BEQ | cuif.opcode == BNE) begin
       cuif.ALUOP = ALU_SUB;
-    end else if(cuif.opcode == ADDI | cuif.opcode == ADDIU | cuif.opcode == LW | cuif.opcode == SW) begin
+    end else if(cuif.opcode == ADDI | cuif.opcode == ADDIU | cuif.opcode == LW | cuif.opcode == SW | cuif.opcode == LL | cuif.opcode == SC) begin
       cuif.ALUOP = ALU_ADD;
     end else if(cuif.opcode == ANDI) begin
       cuif.ALUOP = ALU_AND;

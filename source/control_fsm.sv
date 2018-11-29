@@ -21,7 +21,7 @@ module control_fsm (
   word_t [1:0] data;
   logic [25:0] tag;
 
-  assign access = (cfif.dmemREN || cfif.dmemWEN);
+  assign access = (cfif.dmemREN || (cfif.dmemWEN && !cfif.datomic));
   assign dirty = (cfif.LRU == 0) ? cfif.dirty0 : cfif.dirty1;
   assign data = (cfif.LRU == 0) ? cfif.data0 : cfif.data1;
   assign tag = (cfif.LRU == 0) ? cfif.tag0 : cfif.tag1;
@@ -152,6 +152,8 @@ module control_fsm (
     case(state)
       IDLE : if(!cfif.cctrans) begin
                cfif.hit = !cfif.miss;
+             end else if(cfif.miss && cfif.datomic && cfif.dmemWEN) begin
+               cfif.hit = 1'b1;
              end
       WAIT0 : cfif.daddr = cfif.dmemaddr;
       WAIT1 : cfif.daddr = cfif.dmemaddr;
