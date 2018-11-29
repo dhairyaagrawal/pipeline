@@ -149,7 +149,7 @@ module dcache (
         link_reg[31:0] <= dpif.dmemaddr;
         link_reg[32] <= 1;
       end else begin //set valid bit to 0
-          if(cfif.snoop && alif.WENcache && link_reg[31:0] == cif.ccsnoopaddr) begin
+          if(alif.WENcache && link_reg[31:0] == addr_in && ~cfif.mytrans) begin
             link_reg[32] <= 0;
           end
       end

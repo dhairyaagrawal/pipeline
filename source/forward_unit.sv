@@ -16,6 +16,7 @@ module forward_unit (
       fuif.selA = 2;
     end
 
+    //if(fuif.opcodeEX == RTYPE || fuif.opcodeEX == JAL || fuif.opcodeEX == J || fuif.opcode == BEQ || fuif.opcode == BNE) begin
     if((fuif.rtEX == fuif.destMEM) & fuif.destMEM != 0 & fuif.wenMEM) begin
       fuif.selB = 1;
     end else if((fuif.rtEX == fuif.destWB) & fuif.destWB != 0 & fuif.wenWB) begin

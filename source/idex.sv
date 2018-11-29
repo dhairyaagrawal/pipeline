@@ -11,6 +11,7 @@ module idex (
 
   always_ff@(posedge CLK, negedge nRST) begin
     if(nRST == 0) begin
+      idexif.datomic_out <= '0;
       idexif.rdat1_out <= '0;
       idexif.rdat2_out <= '0;
       idexif.addr_out <= '0;
@@ -20,6 +21,7 @@ module idex (
       idexif.EXctrl_out <= '0;
       idexif.instr_out <= '0;
     end else if(idexif.ihit == 1 & idexif.flush_IDEX == 1) begin
+      idexif.datomic_out <= '0;
       idexif.rdat1_out <= '0;
       idexif.rdat2_out <= '0;
       idexif.addr_out <= '0;
@@ -29,6 +31,7 @@ module idex (
       idexif.EXctrl_out <= '0;
       idexif.instr_out <= '0;
     end else if(idexif.ihit == 1) begin
+      idexif.datomic_out <= idexif.datomic_in;
       idexif.rdat1_out <= idexif.rdat1_in;
       idexif.rdat2_out <= idexif.rdat2_in;
       idexif.addr_out <= idexif.addr_in;

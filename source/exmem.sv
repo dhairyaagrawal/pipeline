@@ -11,6 +11,7 @@ module exmem (
 
   always_ff@(posedge CLK, negedge nRST) begin
     if(nRST == 0) begin
+      exmemif.datomic_out <= '0;
       exmemif.store_out <= '0;
       exmemif.aluout_out <= '0;
       exmemif.dest_out <= '0;
@@ -28,6 +29,7 @@ module exmem (
       exmemif.MEMctrl_out[1:0] <= '0;
       exmemif.dmemload_out <= exmemif.dmemload_in;
     end else if(exmemif.ihit == 1) begin
+      exmemif.datomic_out <= exmemif.datomic_in;
       exmemif.store_out <= exmemif.store_in;
       exmemif.aluout_out <= exmemif.aluout_in;
       exmemif.dest_out <= exmemif.dest_in;

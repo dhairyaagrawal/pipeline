@@ -12,7 +12,7 @@ module hazard_unit (
     huif.stall_IFID = 1'b0;
     huif.flush_IFID = 1'b0;
     huif.flush_IDEX = 1'b0;
-    if(((huif.rs == huif.destEX | huif.rt == huif.destEX) & huif.destEX != 0 & huif.dmemREN)) begin
+    if((huif.rs == huif.destEX | huif.rt == huif.destEX) & huif.destEX != 0 & (huif.dmemREN || huif.opcodeEX == SC)) begin
       huif.stall_PC = 1'b1;
       huif.stall_IFID = 1'b1;
       huif.flush_IDEX = 1'b1;

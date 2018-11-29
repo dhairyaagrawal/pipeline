@@ -64,6 +64,25 @@ module datapath (
   logic [1:0] PCSrc;
   logic ihit;
 
+
+  //DEBUG INSTR PIPE SINGALS
+  r_t rtypeIF;
+  i_t itypeIF;
+  j_t jtypeIF;
+  r_t rtypeIFID;
+  i_t itypeIFID;
+  j_t jtypeIFID;
+  r_t rtypeIDEX;
+  i_t itypeIDEX;
+  j_t jtypeIDEX;
+  r_t rtypeEXMEM;
+  j_t jtypeEXMEM;
+  i_t itypeEXMEM;
+  r_t rtypeMEMWB;
+  j_t jtypeMEMWB;
+  i_t itypeMEMWB;
+
+
   //IF Stage
   word_t PC;
   word_t nextPC;
@@ -259,6 +278,8 @@ module datapath (
   assign huif.EXMEM_tmpPC = exmemif.MEMctrl_out[4:3];
   assign huif.PCSrc = PCSrc;
 
+  assign huif.opcodeEX = opcode_t'(idexif.instr_out[31:26]);
+
   //FORWARD UNIT
   assign fuif.rsEX = idexif.addr_out[25:21]; //rs
   assign fuif.rtEX = idexif.addr_out[20:16]; //rt
@@ -288,27 +309,10 @@ module datapath (
     end
   end
 
+  assign fuif.opcodeMEM = opcode_t'(exmemif.instr_out[31:26]);
+  assign fuif.opcodeWB = opcode_t'(memwbif.instr_out[31:26]);
 
-
-
-  //DEBUG
-
-  r_t rtypeIF;
-  i_t itypeIF;
-  j_t jtypeIF;
-  r_t rtypeIFID;
-  i_t itypeIFID;
-  j_t jtypeIFID;
-  r_t rtypeIDEX;
-  i_t itypeIDEX;
-  j_t jtypeIDEX;
-  r_t rtypeEXMEM;
-  j_t jtypeEXMEM;
-  i_t itypeEXMEM;
-  r_t rtypeMEMWB;
-  j_t jtypeMEMWB;
-  i_t itypeMEMWB;
-
+  //connect instructions through the pipe
   assign rtypeIF = r_t'(dpif.imemload);
   assign itypeIF = i_t'(dpif.imemload);
   assign jtypeIF = j_t'(dpif.imemload);
