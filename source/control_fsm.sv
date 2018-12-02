@@ -41,6 +41,7 @@ module control_fsm (
   //NEXT STATE LOGIC
   always_comb begin
     nextstate = state;
+    cfif.mytrans = 1'b0;
     case(state)
       IDLE : if(cfif.ccwait && cfif.ccsnoopaddr != '0) begin
                nextstate = SNOOP;
@@ -64,7 +65,10 @@ module control_fsm (
                 nextstate = DELAY0;
               end
       DELAY0 : nextstate = DELAY1;
-      DELAY1 : nextstate = IDLE;
+      DELAY1 : begin
+                nextstate = IDLE;
+                cfif.mytrans = 1'b1;
+      end
       SNOOP : if(cfif.flush_latch) begin
                 nextstate = FLUSH;
               end else if(cfif.ccwrite) begin
@@ -77,6 +81,7 @@ module control_fsm (
                  end
       DIRTYWB1 : if(!cfif.dwait) begin
                    nextstate = IDLE;
+                   cfif.mytrans = 1'b1;
                  end
       WRAM0 : if(cfif.ccwait && cfif.ccsnoopaddr != '0) begin
                nextstate = SNOOP;
@@ -150,7 +155,6 @@ module control_fsm (
     cfif.tagWEN = 1'b0;
 
     cfif.snoop = 1'b0;
-    cfif.mytrans = 1'b0;
     cfif.snoopaddr = '0;
     cfif.hit = 1'b0;
     case(state)
@@ -164,7 +168,6 @@ module control_fsm (
       DELAY0 : cfif.daddr = cfif.dmemaddr;
       DELAY1 :  begin
                 cfif.daddr = cfif.dmemaddr;
-                cfif.mytrans = 1'b1;
       end
       SNOOP : begin
               cfif.snoop = 1'b1;
@@ -179,7 +182,6 @@ module control_fsm (
       DIRTYWB1 : begin
                  cfif.snoop = 1'b1;
                  cfif.snoopaddr = cfif.ccsnoopaddr;
-                 cfif.mytrans = 1'b1;
                  cfif.daddr = cfif.ccsnoopaddr;
       end
       WRAM0 : begin
