@@ -9,7 +9,8 @@
 mainp0:
   push $ra
   ori $t6, $0, 0x10 #seed
-  ori $t7, $0, 256  #counter for generating 256 random variables
+  ori $t7, $0, 4  #counter for generating 256 random variables
+
 
 lp0:
   #crc section
@@ -21,7 +22,7 @@ lp0:
   ori $a0, $0, l1     # move lock to arguement register
   jal lock
   or  $a0, $0, $t8    #load crc into argument 0 variable
-  push $a0
+  jal myPush
   ori $a0, $0, l1     # move lock to arguement register
   jal unlock          # release the lock
 
@@ -44,24 +45,41 @@ lp0:
 
 mainp1:
   push $ra
-  ori $s1, $0, 256 #counter for consuming 256 variables
+  ori $s1, $0, 4 #counter for consuming 256 variables
   ori $s2, $0, 0    #register for max value
   ori $s3, $0, 0xFFFFFFFF #register for min value
   ori $s4, $0, 0    #register for sum
+  ori $s5, $0, 0
 
 lp1:
   #lock
   ori $a0, $0, l1     # move lock to arguement register
   jal lock
-
   #pop
   jal myPop
+
+ul1:
   #unlock
   ori $a0, $0, l1     # move lock to arguement register
   jal unlock          # release the lock
 
+  #check if pop was successful
+  ori $t5, $0, 0x0FFC
+  beq $t2, $t5, lp1    #if stack was empty, go back to lock
+
+  #increment & check loop variable
+  addi $s5, $s5, 1
+  beq $s1, $s5, stats #this is so it doesnt take the beq below once all crcs have been consumed
+
+
+stats:
+  #mask upper 16 bits
+  andi $v1, $v1, 0xFFFF
+  #add to sum
+  add $s4, $s4, $v1
+
   #max
-  or $a0, $0, $t9    #load popped value into $a0
+  or $a0, $0, $v1    #load popped value into $a0
   or $a1, $0, $s2    #load max value into $a1
   jal max
   or $s2, $0, $v0    #return new max value to max register
@@ -69,12 +87,7 @@ lp1:
   or $a1, $0, $s3    #load min value into $a1
   jal min
   or $s3, $0, $v0
-  #add to sum
-  add $s4, $s4, $t9
 
-  #decrement & check loop variable
-  addi $s1, $s1, -1
-  bne $s1, $0, lp1
 
   #calculate average
   or $a0, $0, $s4
@@ -87,10 +100,34 @@ lp1:
   pop $ra
   jr $ra
 
+
 myPop:
-  lw  $t9, 0($sp)
-  sw  $0,  0($sp)
-  addi $sp, $sp, 4
+  ori $t0, $0, stackoffset  #load stack offset memory location
+  ori $t1, $0, stackbase    #load stack base memory loction
+  lw  $t2, 0($t0)           #load actual stack offset into t2
+  ori $t5, $0, 0x0FFC
+  beq $t2, $t5, breakPop          #check if stack is empty
+
+  lw  $t3, 0($t1)           #load actual stack base into t3
+  add $t4, $t3, $t2         #add stack offset to stack base
+
+  lw  $v1, 0($t4)           #load value off of stack
+  sw  $0,  0($t4)           #zero out stack value
+  addi $t2, $t2, 4          #increment stack offset
+  sw  $t2, 0($t0)           #store new stack offset at stackoffset memory location
+breakPop:
+  jr $ra
+
+myPush:
+  ori $t0, $0, stackoffset  #load stack offset memory location
+  ori $t1, $0, stackbase   #load stack base memory location
+  lw  $t2, 0($t0)           #load actual stack offset into t2
+  lw  $t3, 0($t1)
+  add $t4, $t3, $t2         #add stack offset to stack base
+
+  sw  $a0, 0($t4)          #sw @ stackbase+offset
+  addi  $t2, $t2, -4       #decrement stackoffset
+  sw  $t2, 0($t0)          #store new stack offset to stack offset memory location
   jr $ra
 
 #------------------------LOCK-------------------------------#
@@ -242,3 +279,11 @@ minrtn:
 #Memory
 l1:
   cfw 0x0
+
+#stack
+stackbase:
+  cfw 0x9000
+
+org 0x9400
+stackoffset:
+  cfw 0x0FFC
