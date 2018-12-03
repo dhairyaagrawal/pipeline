@@ -9,7 +9,7 @@
 mainp0:
   push $ra
   ori $t6, $0, 0x10 #seed
-  ori $t7, $0, 4  #counter for generating 256 random variables
+  ori $t7, $0, 256  #counter for generating 256 random variables
 
 
 lp0:
@@ -45,11 +45,13 @@ lp0:
 
 mainp1:
   push $ra
-  ori $s1, $0, 4 #counter for consuming 256 variables
+  ori $s1, $0, 256    #static number for consuming 256 variables
   ori $s2, $0, 0    #register for max value
   ori $s3, $0, 0xFFFFFFFF #register for min value
   ori $s4, $0, 0    #register for sum
-  ori $s5, $0, 0
+  ori $s5, $0, 0    #up count for consuming 256 variables
+  ori $s6, $0, 0    #quotient
+  ori $s7, $0, 0    #register to track successful pop
 
 lp1:
   #lock
@@ -64,12 +66,11 @@ ul1:
   jal unlock          # release the lock
 
   #check if pop was successful
-  ori $t5, $0, 0x0FFC
-  beq $t2, $t5, lp1    #if stack was empty, go back to lock
+  beq $s7, $0, lp1    #if stack was empty, go back to lock
 
   #increment & check loop variable
   addi $s5, $s5, 1
-  beq $s1, $s5, stats #this is so it doesnt take the beq below once all crcs have been consumed
+  #beq $s1, $s5, stats #this is so it doesnt take the beq below once all crcs have been consumed
 
 
 stats:
@@ -88,13 +89,13 @@ stats:
   jal min
   or $s3, $0, $v0
 
+  bne $s1, $s5, lp1 #jumps back to loop for consuming variables if count hasnt recahed max # to consume
 
   #calculate average
   or $a0, $0, $s4
   ori $a1, $0, 256
   jal divide
-  or $s5, $0, $v0    #quotient
-  or $s6, $0, $v1    #remainder
+  or $s6, $0, $v0    #quotient
 
   #return to calling function
   pop $ra
@@ -108,14 +109,19 @@ myPop:
   ori $t5, $0, 0x0FFC
   beq $t2, $t5, breakPop          #check if stack is empty
 
+  ori $s7, $0, 1            #flag for successful pop
   lw  $t3, 0($t1)           #load actual stack base into t3
   add $t4, $t3, $t2         #add stack offset to stack base
+  addi $t4, $t4, 4
 
   lw  $v1, 0($t4)           #load value off of stack
   sw  $0,  0($t4)           #zero out stack value
   addi $t2, $t2, 4          #increment stack offset
   sw  $t2, 0($t0)           #store new stack offset at stackoffset memory location
+  jr $ra
+
 breakPop:
+  ori $s7, $0, 0            #flag for unsuccessful pop
   jr $ra
 
 myPush:
