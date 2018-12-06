@@ -39,6 +39,29 @@ module dcache (
   logic [2:0] index_in;
   word_t addr_in;
 
+  //LATCH CC SIGNAL
+  logic invReg;
+  logic waitReg;
+  word_t snoopReg;
+  logic nextWrite; //maybe wrong
+  logic nextTrans; //maybe wrong
+
+  always_ff@(posedge CLK, negedge nRST) begin
+    if(!nRST) begin
+      snoopReg <= '0;
+      invReg <= '0;
+      waitReg <= '0;
+      cif.ccwrite <= '0;
+      cif.cctrans <= '0;
+    end else begin
+      snoopReg <= cif.ccsnoopaddr;
+      invReg <= cif.ccinv;
+      waitReg <= cif.ccwait;
+      cif.ccwrite <= nextWrite;
+      cif.cctrans <= nextTrans;
+    end
+  end
+
   assign addr_in = (cfif.snoop) ? cfif.snoopaddr : dpif.dmemaddr;
   assign tagbits = addr_in[31:6];
   assign offset = addr_in[2];
@@ -58,12 +81,12 @@ module dcache (
   assign alif.tag1 = set1[index_in].tag;
   assign alif.data1 = set1[index_in].data;
   assign alif.halt = dpif.halt;
-  assign alif.ccinv = cif.ccinv;
+  assign alif.ccinv = invReg;
   assign alif.snoop = cfif.snoop;
   assign alif.mytrans = cfif.mytrans;
 
-  assign cif.ccwrite = alif.ccwrite;
-  assign cif.cctrans = alif.cctrans;
+  assign nextWrite = alif.ccwrite;
+  assign nextTrans = alif.cctrans;
   assign dpif.dmemload = (dpif.dmemWEN & dpif.datomic) ? {31'h0,sc_succeed} : alif.data_out;
 
   //DCACHE
@@ -182,10 +205,10 @@ module dcache (
   assign cfif.halt = dpif.halt;
   assign cfif.miss = alif.miss;
   assign cfif.flush_latch = 1'b0;
-  assign cfif.ccwait = cif.ccwait;
+  assign cfif.ccwait = waitReg;
   assign cfif.ccwrite = alif.ccwrite;
   assign cfif.cctrans = alif.cctrans;
-  assign cfif.ccsnoopaddr = cif.ccsnoopaddr;
+  assign cfif.ccsnoopaddr = snoopReg;
   assign cfif.datomic = dpif.datomic;
 
   assign dpif.dhit = cfif.hit;

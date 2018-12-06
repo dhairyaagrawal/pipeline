@@ -31,85 +31,101 @@ module memory_control (
   logic coresel;
   logic nextcoresel;
 
+  logic [1:0] nextInv;
+  word_t [1:0] nextSnoopaddr;
+  logic [1:0] nextWait;
+  logic [1:0] cctransReg;
+  logic [1:0] ccwriteReg;
+
   //STORE STATE
   always_ff@(posedge CLK, negedge nRST) begin
     if(!nRST) begin
       state <= IDLE;
       cachesel <= '1;
       coresel <= '1;
+      ccif.ccsnoopaddr <= '0; //output
+      ccwriteReg <= '0; //input latched
+      cctransReg <= '0; //input latched
     end else begin
       state <= nextstate;
       cachesel <= nextcachesel;
       coresel <= nextcoresel;
+      ccif.ccsnoopaddr <= nextSnoopaddr; //output
+      ccif.ccinv <= nextInv;
+      ccif.ccwait <= nextWait;
+      ccwriteReg <= ccif.ccwrite; //input latched
+      cctransReg <= ccif.cctrans; //input latched
     end
   end
 
   //NEXT STATE LOGIC
   always_comb begin
     nextstate = state;
-    ccif.ccwait = '0;
+    //ccif.ccwait = '0;
+    nextWait = ccif.ccwait;
     case(state)
-      IDLE : if(ccif.cctrans[0] || ccif.cctrans[1] || ccif.dWEN[0] || ccif.dWEN[1] || ccif.dREN[0] || ccif.dREN[1] || ccif.iREN[0] || ccif.iREN[1]) begin
+      IDLE : if(cctransReg[0] || cctransReg[1] || ccif.dWEN[0] || ccif.dWEN[1] || ccif.dREN[0] || ccif.dREN[1] || ccif.iREN[0] || ccif.iREN[1]) begin
                nextstate = ARBITRATE;
+               nextWait = '1;
              end
       ARBITRATE : if(ccif.dWEN[cachesel]) begin
                     nextstate = WB0;
-                    ccif.ccwait[!cachesel] = '1;
-                  end else if(ccif.cctrans[cachesel] || ccif.dREN[cachesel] ) begin
+                    nextWait[!cachesel] = '1;
+                  end else if(cctransReg[cachesel] || ccif.dREN[cachesel] ) begin
                     nextstate = SNOOP;
-                    ccif.ccwait[!cachesel] = '1;
+                    nextWait[!cachesel] = '1;
                   end else if(ccif.iREN[coresel]) begin
                     nextstate = FETCH;
-                    ccif.ccwait = '1;
+                    nextWait = '1;
                   end
       WB0 : begin
-            ccif.ccwait[!cachesel] = '1;
+            nextWait[!cachesel] = '1;
             if(ccif.ramstate == ACCESS) begin
               nextstate = WB1;
             end
       end
       WB1 : begin
-            ccif.ccwait[!cachesel] = '1;
+            nextWait[!cachesel] = '1;
             if(ccif.ramstate == ACCESS) begin
                 nextstate = IDLE;
             end
       end
       FETCH : begin
-              ccif.ccwait[!cachesel] = '1;
+              nextWait[!cachesel] = '1;
               if(ccif.ramstate == ACCESS) begin
                 nextstate = IDLE;
               end
       end
       SNOOP : begin
-              ccif.ccwait[!cachesel] = '1;
-              if(!ccif.dREN[cachesel] && ccif.cctrans[!cachesel]) begin
+              nextWait[!cachesel] = '1;
+              if(!ccif.dREN[cachesel] && cctransReg[!cachesel]) begin
                 nextstate = IDLE;
-              end else if(ccif.ccwrite[!cachesel] && ccif.cctrans[!cachesel]) begin
+              end else if(ccwriteReg[!cachesel] && cctransReg[!cachesel]) begin
                 nextstate = DIRTYWB0;
-              end else if(!ccif.ccwrite[!cachesel] && ccif.cctrans[!cachesel]) begin
+              end else if(!ccwriteReg[!cachesel] && cctransReg[!cachesel]) begin
                 nextstate = READ0;
               end
       end
       READ0 : begin
-              ccif.ccwait[!cachesel] = '1;
+              nextWait[!cachesel] = '1;
               if(ccif.ramstate == ACCESS) begin
                 nextstate = READ1;
               end
       end
       READ1 : begin
-              ccif.ccwait[!cachesel] = '1;
+              nextWait[!cachesel] = '1;
               if(ccif.ramstate == ACCESS) begin
                 nextstate = IDLE;
               end
       end
       DIRTYWB0 : begin
-                 ccif.ccwait[!cachesel] = '1;
+                 nextWait[!cachesel] = '1;
                  if(ccif.ramstate == ACCESS) begin
                    nextstate = DIRTYWB1;
                  end
       end
       DIRTYWB1 : begin
-                 ccif.ccwait[!cachesel] = '1;
+                 nextWait[!cachesel] = '1;
                  if(ccif.ramstate == ACCESS) begin
                    nextstate = IDLE;
                  end
@@ -128,17 +144,18 @@ module memory_control (
     ccif.ramWEN = 1'b0;
     ccif.ramREN = 1'b0;
     //ccif.ccwait = '0;
-    ccif.ccinv = '0;
-    ccif.ccsnoopaddr = '0;
+    //ccif.ccinv = '0;
     nextcachesel = cachesel;
     nextcoresel = coresel;
+    nextSnoopaddr = ccif.ccsnoopaddr;
+    nextInv = ccif.ccinv;
     case(state)
       IDLE : begin
-             if(((ccif.dWEN[0] || ccif.dREN[0]) && (ccif.dWEN[1] || ccif.dREN[1])) || (ccif.cctrans == 3)) begin
+             if(((ccif.dWEN[0] || ccif.dREN[0]) && (ccif.dWEN[1] || ccif.dREN[1])) || (cctransReg == 3)) begin
                nextcachesel = !cachesel;
-             end else if(ccif.dWEN[0] || ccif.dREN[0] || ccif.cctrans[0]) begin
+             end else if(ccif.dWEN[0] || ccif.dREN[0] || cctransReg[0]) begin
                nextcachesel = 1'b0;
-             end else if(ccif.dWEN[1] || ccif.dREN[1] || ccif.cctrans[1]) begin
+             end else if(ccif.dWEN[1] || ccif.dREN[1] || cctransReg[1]) begin
                nextcachesel = 1'b1;
              end
              if(ccif.iREN[0] && ccif.iREN[1]) begin
@@ -148,19 +165,23 @@ module memory_control (
              end else if(ccif.iREN[1]) begin
                nextcoresel = 1'b1;;
              end
+             nextSnoopaddr[!nextcachesel] = ccif.daddr[nextcachesel];
+             nextInv[!nextcachesel] = ccwriteReg[nextcachesel];
       end
       ARBITRATE : begin
-                  nextcachesel = cachesel;
-                  nextcoresel = coresel;
-                  if(ccif.cctrans[cachesel] || ccif.dREN[cachesel] ) begin
-                    ccif.ccsnoopaddr[!cachesel] = ccif.daddr[cachesel];
-                    ccif.ccinv[!cachesel] = ccif.ccwrite[cachesel];
+                  if(cctransReg[cachesel] || ccif.dREN[cachesel] ) begin
+                    nextSnoopaddr[!cachesel] = ccif.daddr[cachesel];
+                    //ccif.ccsnoopaddr[!cachesel] = ccif.daddr[cachesel];
+                    nextInv[!cachesel] = ccwriteReg[cachesel];
                   end
       end
       FETCH : begin
               ccif.ramaddr = ccif.iaddr[coresel];
               ccif.ramREN = ccif.iREN[coresel];
               ccif.iload[coresel] = ccif.ramload;
+              nextSnoopaddr[!cachesel] = '0;
+              nextInv[!cachesel] = '0;nextSnoopaddr[!cachesel] = '0;
+                   nextInv[!cachesel] = '0;
               if(ccif.ramstate == ACCESS) begin
                 ccif.iwait[coresel] = 1'b0;
               end
@@ -182,9 +203,10 @@ module memory_control (
               end
       end
       SNOOP : begin
-              ccif.ccsnoopaddr[!cachesel] = ccif.daddr[cachesel];
-              //ccif.ccwait[!cachesel] = 1'b1;
-              ccif.ccinv[!cachesel] = ccif.ccwrite[cachesel];
+              ccif.ramaddr = '0;
+              //ccif.ccsnoopaddr[!cachesel] = ccif.daddr[cachesel];
+              //nextSnoopaddr[!cachesel] = ccif.daddr[cachesel];
+              //nextInv[!cachesel] = ccwriteReg[cachesel];
       end
       READ0 : begin
               ccif.ramaddr = ccif.daddr[cachesel];
@@ -203,8 +225,9 @@ module memory_control (
               end
       end
       DIRTYWB0 : begin
-                 ccif.ccsnoopaddr[!cachesel] = ccif.daddr[cachesel];
-                 ccif.ccinv[!cachesel] = ccif.ccwrite[cachesel];
+                 //nextSnoopaddr[!cachesel] = ccif.daddr[cachesel];
+                 //ccif.ccsnoopaddr[!cachesel] = ccif.daddr[cachesel];
+                 //nextInv[!cachesel] = ccwriteReg[cachesel];
                  ccif.dload[cachesel] = ccif.dstore[!cachesel];
                  ccif.ramaddr = ccif.daddr[!cachesel];
                  ccif.ramstore = ccif.dstore[!cachesel];
@@ -212,11 +235,14 @@ module memory_control (
                  //ccif.ccwait[~cachesel] = 1;
                  if(ccif.ramstate == ACCESS) begin
                    ccif.dwait = '0;
+                   nextSnoopaddr[!cachesel] = '0;
+                   nextInv[!cachesel] = '0;
                  end
       end
       DIRTYWB1 : begin
-                 ccif.ccsnoopaddr[!cachesel] = ccif.daddr[cachesel];
-                 ccif.ccinv[!cachesel] = ccif.ccwrite[cachesel];
+                 //nextSnoopaddr[!cachesel] = ccif.daddr[cachesel];
+                 //ccif.ccsnoopaddr[!cachesel] = ccif.daddr[cachesel];
+                 //nextInv[!cachesel] = ccwriteReg[cachesel];
                  ccif.dload[cachesel] = ccif.dstore[!cachesel];
                  ccif.ramaddr = ccif.daddr[!cachesel];
                  ccif.ramstore = ccif.dstore[!cachesel];
@@ -224,6 +250,8 @@ module memory_control (
                  //ccif.ccwait[~cachesel] = 1;
                  if(ccif.ramstate == ACCESS) begin
                    ccif.dwait = '0;
+                   nextSnoopaddr[!cachesel] = '0;
+                   nextInv[!cachesel] = '0;
                  end
       end
     endcase
